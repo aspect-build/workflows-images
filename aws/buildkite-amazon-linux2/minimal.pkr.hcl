@@ -54,6 +54,7 @@ build {
 
   provisioner "shell" {
       inline = [
+          # Install dependencies
           format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
       ]
   }

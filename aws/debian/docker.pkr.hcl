@@ -41,17 +41,20 @@ locals {
       "rsync",
       # Needed for bb-clientd
       "fuse",
+      # Additional deps on top of minimal
+      "docker.io",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
         "amazon-ssm-agent",
+        "docker.service",
     ]
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-debian-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-debian-docker-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   ssh_username                              = "admin"

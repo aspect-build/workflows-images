@@ -40,16 +40,19 @@ locals {
         "fuse",
         # Install git so we can fetch the source code to be tested, obviously!
         "git",
+        # Additional deps on top of minimal
+        "docker",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
+        "docker.service",
     ]
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-al2-docker-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   ssh_username                              = "ec2-user"

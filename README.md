@@ -4,12 +4,24 @@ Collection of packer scripts to create AMIs and GCP images for use with Aspect W
 
 See https://docs.aspect.build/v/workflows/install/packer for accompanying Aspect Workflows documentation.
 
+## Variants
+
+### minimal
+
+These include the minimal Workflows deps of `fuse` & `rsync`.
+
+### docker
+
+This adds docker on top of the minimal Workflows deps.
+
 ## AWS AMIs
 
+AWS AMI packer files are found under the `/aws` directory.
+
+To build AMS AMI's, pass the version and region as arguments:
+
 ```
-bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/amazon-linux2/minimal.pkr.hcl"
-bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/buildkite-amazon-linux2/minimal.pkr.hcl"
-bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/debian/minimal.pkr.hcl"
+bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/<distro>/<variant>.pkr.hcl"
 ```
 
 For example,
@@ -18,9 +30,10 @@ For example,
 
 ## GCP images
 
+To build GCP images, pass the version, project & zone as arguments:
+
 ```
-bazel run //:packer -- build -var "version=<version>" -var "project=<project-name> -var "zone=<zone>" gcp/debian/minimal.pkr.hcl
-bazel run //:packer -- build -var "version=<version>" -var "project=<project-name> -var "zone=<zone>" gcp/ubuntu/minimal.pkr.hcl
+bazel run //:packer -- build -var "version=<version>" -var "project=<project-name> -var "zone=<zone>" gcp/<distro>/<variant>.pkr.hcl
 ```
 
 For example,
