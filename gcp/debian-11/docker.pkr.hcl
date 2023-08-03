@@ -39,8 +39,8 @@ locals {
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-debian"
-  image_name = "aspect-workflows-debian-docker-${var.version}"
+  image_family = "aspect-workflows-debian-11"
+  image_name = "aspect-workflows-debian-11-docker-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"

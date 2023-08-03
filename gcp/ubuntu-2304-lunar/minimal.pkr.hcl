@@ -31,8 +31,8 @@ locals {
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-ubuntu"
-  image_name = "aspect-workflows-ubuntu-minimal-${var.version}"
+  image_family = "aspect-workflows-ubuntu-2304"
+  image_name = "aspect-workflows-ubuntu-2304-minimal-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"

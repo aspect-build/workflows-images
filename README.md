@@ -8,7 +8,7 @@ See https://docs.aspect.build/v/workflows/install/packer for accompanying Aspect
 
 ### minimal
 
-These include the minimal Workflows deps of `fuse` & `rsync`.
+These include the minimal Workflows deps of `fuse`, `rsync`, `rsyslog` and `mdadm`. Some distros base images have some of these deps already installed so not all are explicitly installed in every packer file.
 
 ### docker
 
@@ -18,19 +18,35 @@ This adds docker on top of the minimal Workflows deps.
 
 AWS AMI packer files are found under the `/aws` directory.
 
-To build AMS AMI's, pass the version and region as arguments:
+To build AMS AMI's, first run `packer init`. This is only required once.
+
+```
+bazel run //:packer -- init aws/<distro>/<variant>.pkr.hcl"
+```
+
+Then run `packer build` passing the desired `version` and `region` as arguments.
 
 ```
 bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/<distro>/<variant>.pkr.hcl"
 ```
 
+You may also need to pass arguments `-var "vpc_id=<vpc_id>"` and `-var "subnet_id=<subnet_id>"` arguments if there is no default vpc in the region.
+
+Pass `-var "encrypt_boot=true"` if you would like to build the AMI with an encrypted boot drive.
+
 For example,
 
-`bazel run //:packer -- build -var "version=1-0-0" -var "region=us-west-2" aws/amazon-linux2/minimal.pkr.hcl`
+`bazel run //:packer -- build -var "version=1-0-0" -var "region=us-west-2" aws/amazon-linux-2/minimal.pkr.hcl`
 
 ## GCP images
 
-To build GCP images, pass the version, project & zone as arguments:
+To build GCP images, first run `packer init`. This is only required once.
+
+```
+bazel run //:packer -- init gcp/<distro>/<variant>.pkr.hcl"
+```
+
+Then run `packer build`, passing the desired `version`, `project` & `zone` as arguments:
 
 ```
 bazel run //:packer -- build -var "version=<version>" -var "project=<project-name> -var "zone=<zone>" gcp/<distro>/<variant>.pkr.hcl
@@ -38,4 +54,4 @@ bazel run //:packer -- build -var "version=<version>" -var "project=<project-nam
 
 For example,
 
-`bazel run //:packer -- build -var "version=1-0-0" -var "project=my-project" -var "zone=us-east5-a" gcp/debian/minimal.pkr.hcl`
+`bazel run //:packer -- build -var "version=1-0-0" -var "project=my-project" -var "zone=us-east5-a" gcp/debian-11/minimal.pkr.hcl`

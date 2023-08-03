@@ -15,6 +15,21 @@ variable "region" {
   type = string
 }
 
+variable "vpc_id" {
+  type = string
+  default = null
+}
+
+variable "subnet_id" {
+  type = string
+  default = null
+}
+
+variable "encrypt_boot" {
+  type = bool
+  default = false
+}
+
 # Lookup the base AMI we want:
 # Quickstart AMI: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type (x86)
 # Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2.pkr.hcl
@@ -40,24 +55,24 @@ locals {
         "fuse",
         # Install git so we can fetch the source code to be tested, obviously!
         "git",
-        # Additional deps on top of minimal
-        "docker",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
-        "docker.service",
     ]
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2-docker-${var.version}"
+  ami_name                                  = "aspect-workflows-al2-minimal-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
+  vpc_id                                    = "${var.vpc_id}"
+  subnet_id                                 = "${var.subnet_id}"
   ssh_username                              = "ec2-user"
   source_ami                                = local.source_ami
   temporary_security_group_source_public_ip = true
+  encrypt_boot                              = var.encrypt_boot
 }
 
 build {

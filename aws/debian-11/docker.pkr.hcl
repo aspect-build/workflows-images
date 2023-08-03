@@ -15,6 +15,21 @@ variable "region" {
   type = string
 }
 
+variable "vpc_id" {
+  type = string
+  default = null
+}
+
+variable "subnet_id" {
+  type = string
+  default = null
+}
+
+variable "encrypt_boot" {
+  type = bool
+  default = false
+}
+
 # Lookup the base AMI we want
 data "amazon-ami" "debian" {
     filters = {
@@ -37,26 +52,32 @@ locals {
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-      # A dependency of aspect workflows
+      # A dependency of Aspect Workflows
       "rsync",
       # Needed for bb-clientd
       "fuse",
+      # Additional deps on top of minimal
+      "docker.io",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
         "amazon-ssm-agent",
+        "docker.service",
     ]
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-debian-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-debian-11-docker-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
+  vpc_id                                    = "${var.vpc_id}"
+  subnet_id                                 = "${var.subnet_id}"
   ssh_username                              = "admin"
   source_ami                                = data.amazon-ami.debian.id
   temporary_security_group_source_public_ip = true
+  encrypt_boot                              = var.encrypt_boot
 }
 
 build {
