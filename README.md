@@ -8,11 +8,11 @@ See https://docs.aspect.build/v/workflows/install/packer for accompanying Aspect
 
 ### minimal
 
-These include the minimal Workflows deps of `fuse`, `rsync`, `rsyslog` and `mdadm`. Some distros base images have some of these deps already installed so not all are explicitly installed in every packer file.
+These include the minimal dependencies required by Workflows. Not all dependencies are listed in all Packer files, as some distributions base images have these dependencies already installed.
 
 ### docker
 
-This adds docker on top of the minimal Workflows deps.
+This adds docker on top of the minimal Workflows dependencies.
 
 ## AWS AMIs
 
