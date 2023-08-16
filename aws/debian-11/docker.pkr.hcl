@@ -56,6 +56,9 @@ locals {
       "rsync",
       # Needed for bb-clientd
       "fuse",
+      # (Optional) zip is required if any tests create zips of undeclared test outputs
+      # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+      "zip",
       # Additional deps on top of minimal
       "docker.io",
     ]

@@ -26,6 +26,9 @@ locals {
   install_packages = [
     # fuse will be optional in future releases although highly recommended for better performance
     "fuse",
+    # (Optional) zip is required if any tests create zips of undeclared test outputs
+    # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+    "zip",
     # Additional deps on top of minimal
     "docker.io",
   ]
