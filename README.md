@@ -10,6 +10,10 @@ See https://docs.aspect.build/v/workflows/install/packer for accompanying Aspect
 
 These include the minimal dependencies required by Workflows. Not all dependencies are listed in all Packer files, as some distributions base images have these dependencies already installed.
 
+### gcc
+
+This adds gcc & gcc-c++ on top of the minimal Workflows dependencies.
+
 ### docker
 
 This adds docker on top of the minimal Workflows dependencies.
