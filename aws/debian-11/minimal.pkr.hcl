@@ -56,6 +56,9 @@ locals {
       "rsync",
       # Needed for bb-clientd
       "fuse",
+      # (Optional) zip is required if any tests create zips of undeclared test outputs
+      # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+      "zip",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
