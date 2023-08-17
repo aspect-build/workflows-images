@@ -60,6 +60,9 @@ locals {
         "fuse",
         # Install git so we can fetch the source code to be tested, obviously!
         "git",
+        # Additional deps on top of minimal
+        "gcc-c++",
+        "gcc",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
@@ -69,7 +72,7 @@ locals {
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2023-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-al2023-gcc-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"

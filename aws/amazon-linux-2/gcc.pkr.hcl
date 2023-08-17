@@ -31,12 +31,12 @@ variable "encrypt_boot" {
 }
 
 # Lookup the base AMI we want:
-# Quickstart AMI: Amazon Linux 2023 AMI 2023.1.20230725.0 x86_64 HVM kernel-6.1
-# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
-data "amazon-ami" "al2023" {
+# Quickstart AMI: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type (x86)
+# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2.pkr.hcl
+data "amazon-ami" "al2" {
     filters = {
         virtualization-type = "hvm"
-        name = "al2023-ami-2023.1.20230725.0-kernel-6.1-x86_64",
+        name = "amzn2-ami-kernel-5.10-hvm-2.0.20230612.0-x86_64-gp2",
         root-device-type = "ebs"
     }
     owners = ["137112412989"] # Amazon
@@ -45,21 +45,19 @@ data "amazon-ami" "al2023" {
 }
 
 locals {
-    source_ami = data.amazon-ami.al2023.id
+    source_ami = data.amazon-ami.al2.id
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-        # Dependencies of Aspect Workflows
-        "rsyslog",
-        "mdadm",
-        # Install libicu which is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
-        "libicu",
         # Install cloudwatch-agent so that bootstrap logs are easier to locale
         "amazon-cloudwatch-agent",
         # Install fuse so that launch_bb_clientd_linux.sh can run.
         "fuse",
         # Install git so we can fetch the source code to be tested, obviously!
         "git",
+        # Additional deps on top of minimal
+        "gcc-c++",
+        "gcc",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
@@ -69,7 +67,7 @@ locals {
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2023-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-al2-minimal-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
