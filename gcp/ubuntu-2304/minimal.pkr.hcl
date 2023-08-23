@@ -29,20 +29,13 @@ locals {
     # (Optional) zip is required if any tests create zips of undeclared test outputs
     # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
-    # Additional deps on top of minimal
-    "docker.io",
-  ]
-
-  # We'll need to tell systemctl to start these when the image boots next.
-  enable_services = [
-    "docker.service",
   ]
 }
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-ubuntu"
-  image_name = "aspect-workflows-ubuntu-docker-${var.version}"
+  image_family = "aspect-workflows-ubuntu-2304-minimal"
+  image_name = "aspect-workflows-ubuntu-2304-minimal-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"
@@ -71,9 +64,6 @@ build {
       # Install dependencies
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
-
-      # Enable required services
-      format("sudo systemctl enable %s", join(" ", local.enable_services)),
     ]
   }
 }
