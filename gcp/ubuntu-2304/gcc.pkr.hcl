@@ -20,30 +20,24 @@ variable "zone" {
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20230629"
+  source_image = "ubuntu-2304-lunar-amd64-v20230613"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
-    "rsync",
-    # fuse will be optional in future release although highly recommended for better performance
+    # fuse will be optional in future releases although highly recommended for better performance
     "fuse",
     # (Optional) zip is required if any tests create zips of undeclared test outputs
     # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
     # Additional deps on top of minimal
-    "docker.io",
-  ]
-
-  # We'll need to tell systemctl to start these when the image boots next.
-  enable_services = [
-    "docker.service",
+    "g++",
   ]
 }
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-debian-11-docker"
-  image_name = "aspect-workflows-debian-11-docker-${var.version}"
+  image_family = "aspect-workflows-ubuntu-2304-gcc"
+  image_name = "aspect-workflows-ubuntu-2304-gcc-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"
@@ -58,12 +52,20 @@ build {
   // Install dependencies
   provisioner "shell" {
     inline = [
+      # Disable automated apt updates
+      "sudo systemctl disable apt-daily-upgrade.timer apt-daily.timer",
+
+      # Disable snap refreshes
+      "sudo snap refresh --hold=forever",
+
+      # apt-get update is often running by the time this script begins,
+      # causing a race condition to lock  /var/lib/apt/lists/lock. Kill
+      # any ongoing apt processes to release the lock.
+      "sudo killall apt apt-get || true",
+
       # Install dependencies
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
-
-      # Enable required services
-      format("sudo systemctl enable %s", join(" ", local.enable_services)),
     ]
   }
 }
