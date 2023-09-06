@@ -56,6 +56,8 @@ locals {
       "rsync",
       # Needed for bb-clientd
       "fuse",
+      # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+      "patch",
       # (Optional) zip is required if any tests create zips of undeclared test outputs
       # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
       "zip",

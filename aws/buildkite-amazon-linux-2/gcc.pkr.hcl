@@ -52,6 +52,8 @@ locals {
     install_packages = [
         # Install fuse so that launch_bb_clientd_linux.sh can run.
         "fuse",
+        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        "patch",
         # Additional deps on top of minimal
         "gcc-c++",
         "gcc",
