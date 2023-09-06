@@ -55,6 +55,8 @@ locals {
         "fuse",
         # Install git so we can fetch the source code to be tested, obviously!
         "git",
+        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        "patch",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
