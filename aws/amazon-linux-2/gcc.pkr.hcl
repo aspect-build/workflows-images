@@ -69,7 +69,7 @@ locals {
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2-minimal-${var.version}"
+  ami_name                                  = "aspect-workflows-al2-gcc-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
