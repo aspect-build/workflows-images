@@ -26,7 +26,6 @@ locals {
   install_packages = [
     # Google operational monitoring tools, which are used to collect and alarm on critical telemetry.
     "google-osconfig-agent",
-    "google-cloud-ops-agent",
     # fuse will be optional in future releases although highly recommended for better performance
     "fuse",
     # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
@@ -78,6 +77,10 @@ build {
       # Install dependencies
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
+
+      # Install Google Cloud Ops Agent
+      "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
+      "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
