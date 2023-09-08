@@ -24,6 +24,9 @@ locals {
 
   # System dependencies required for Aspect Workflows
   install_packages = [
+    # Google operational monitoring tools, which are used to collect and alarm on critical telemetry.
+    "google-osconfig-agent",
+    "google-cloud-ops-agent",
     # fuse will be optional in future releases although highly recommended for better performance
     "fuse",
     # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
