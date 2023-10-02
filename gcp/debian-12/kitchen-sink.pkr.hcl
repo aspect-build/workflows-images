@@ -19,15 +19,23 @@ variable "zone" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-debian-12-kitchen-sink"
+}
+
 locals {
-  source_image = "ubuntu-2304-lunar-amd64-v20230613"
+  source_image = "debian-12-bookworm-v20230912"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
     # Google operational monitoring tools, which are used to collect and alarm on critical telemetry.
     "google-osconfig-agent",
-    # fuse will be optional in future releases although highly recommended for better performance
+    "rsync",
+    # fuse will be optional in future release although highly recommended for better performance
     "fuse",
+    # Install git so we can fetch the source code to be tested, obviously!
+    "git",
     # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
     "patch",
     # (Optional) zip is required if any tests create zips of undeclared test outputs
@@ -47,8 +55,8 @@ locals {
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-ubuntu-2304-docker-gcc-make"
-  image_name = "aspect-workflows-ubuntu-2304-docker-gcc-make-${var.version}"
+  image_family = "${var.family}"
+  image_name = "${var.family}-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"
@@ -63,17 +71,6 @@ build {
   // Install dependencies
   provisioner "shell" {
     inline = [
-      # Disable automated apt updates
-      "sudo systemctl disable apt-daily-upgrade.timer apt-daily.timer",
-
-      # Disable snap refreshes
-      "sudo snap refresh --hold=forever",
-
-      # apt-get update is often running by the time this script begins,
-      # causing a race condition to lock  /var/lib/apt/lists/lock. Kill
-      # any ongoing apt processes to release the lock.
-      "sudo killall apt apt-get || true",
-
       # Install dependencies
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),

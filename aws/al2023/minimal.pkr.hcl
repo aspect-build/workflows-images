@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-12-minimal"
+  default = "aspect-workflows-al2023-minimal"
 }
 
 variable "vpc_id" {
@@ -35,45 +35,43 @@ variable "encrypt_boot" {
   default = false
 }
 
-# Lookup the base AMI we want
-data "amazon-ami" "debian" {
+# Lookup the base AMI we want:
+# Quickstart AMI: Amazon Linux 2023 AMI 2023.1.20230725.0 x86_64 HVM kernel-6.1
+# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
+data "amazon-ami" "al2023" {
     filters = {
         virtualization-type = "hvm"
-        name = "debian-12-amd64-20230711-1438"
+        name = "al2023-ami-2023.1.20230725.0-kernel-6.1-x86_64",
         root-device-type = "ebs"
     }
-    owners = ["136693071363"] # Amazon
+    owners = ["137112412989"] # Amazon
     region = "${var.region}"
     most_recent = true
 }
 
 locals {
-    install_debs = [
-        # Install cloudwatch-agent so that bootstrap logs are easier to locale
-        "https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb",
-        # Install system manager so it's easy to login to a machine
-        "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb",
-    ]
+    source_ami = data.amazon-ami.al2023.id
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
         # Dependencies of Aspect Workflows
-        "rsync",
         "rsyslog",
         "mdadm",
-        # Needed for bb-clientd
+        # Install libicu which is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
+        "libicu",
+        # Install cloudwatch-agent so that bootstrap logs are easier to locale
+        "amazon-cloudwatch-agent",
+        # Install fuse so that launch_bb_clientd_linux.sh can run.
         "fuse",
+        # Install git so we can fetch the source code to be tested, obviously!
+        "git",
         # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
         "patch",
-        # (Optional) zip is required if any tests create zips of undeclared test outputs
-        # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
-        "zip",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
-        "amazon-ssm-agent",
     ]
 }
 
@@ -83,8 +81,8 @@ source "amazon-ebs" "runner" {
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
   subnet_id                                 = "${var.subnet_id}"
-  ssh_username                              = "admin"
-  source_ami                                = data.amazon-ami.debian.id
+  ssh_username                              = "ec2-user"
+  source_ami                                = local.source_ami
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = var.encrypt_boot
 }
@@ -93,19 +91,12 @@ build {
   sources = ["source.amazon-ebs.runner"]
 
   provisioner "shell" {
-    # Install dependencies
-    inline = concat([
-        for url in local.install_debs : format("sudo curl %s -O", url)
-    ], [
-        format("sudo dpkg --install --skip-same-version %s", join(" ", [
-          for url in local.install_debs : basename(url)
-        ]))
-    ], [
-        "sudo apt update",
-        format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
+      inline = [
+          # Install dependencies
+          format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
 
-        # Enable required services
-        format("sudo systemctl enable %s", join(" ", local.enable_services)),
-    ])
+          # Enable required services
+          format("sudo systemctl enable %s", join(" ", local.enable_services)),
+      ]
   }
 }

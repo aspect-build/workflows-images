@@ -19,6 +19,11 @@ variable "zone" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-debian-11-gcc"
+}
+
 locals {
   source_image = "debian-11-bullseye-v20230629"
 
@@ -36,15 +41,15 @@ locals {
     # (Optional) zip is required if any tests create zips of undeclared test outputs
     # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
-    # Additional deps on top of gcc
+    # Additional deps on top of minimal
     "g++",
   ]
 }
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-debian-11-gcc"
-  image_name = "aspect-workflows-debian-11-gcc-${var.version}"
+  image_family = "${var.family}"
+  image_name = "${var.family}-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"

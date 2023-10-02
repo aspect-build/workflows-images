@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-11-docker"
+  default = "aspect-workflows-debian-11-gcc"
 }
 
 variable "vpc_id" {
@@ -67,14 +67,13 @@ locals {
         # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
         "zip",
         # Additional deps on top of minimal
-        "docker.io",
+        "g++",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
         "amazon-ssm-agent",
-        "docker.service",
     ]
 }
 

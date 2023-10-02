@@ -19,6 +19,11 @@ variable "zone" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-debian-11-docker"
+}
+
 locals {
   source_image = "debian-11-bullseye-v20230629"
 
@@ -48,8 +53,8 @@ locals {
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-debian-11-docker"
-  image_name = "aspect-workflows-debian-11-docker-${var.version}"
+  image_family = "${var.family}"
+  image_name = "${var.family}-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"
