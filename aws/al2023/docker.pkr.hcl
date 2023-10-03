@@ -15,6 +15,11 @@ variable "region" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-al2023-docker"
+}
+
 variable "vpc_id" {
   type = string
   default = null
@@ -63,18 +68,18 @@ locals {
         # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
         "patch",
         # Additional deps on top of minimal
-        "gcc-c++",
-        "gcc",
+        "docker",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
+        "docker.service",
     ]
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-al2023-gcc-${var.version}"
+  ami_name                                  = "${var.family}-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"

@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-11-docker"
+  default = "aspect-workflows-debian-11-kitchen-sink"
 }
 
 variable "vpc_id" {
@@ -68,6 +68,8 @@ locals {
         "zip",
         # Additional deps on top of minimal
         "docker.io",
+        "g++",
+        "make",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.

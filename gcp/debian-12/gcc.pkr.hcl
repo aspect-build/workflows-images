@@ -21,11 +21,11 @@ variable "zone" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-11-minimal"
+  default = "aspect-workflows-debian-12-gcc"
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20230629"
+  source_image = "debian-12-bookworm-v20230912"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -41,6 +41,8 @@ locals {
     # (Optional) zip is required if any tests create zips of undeclared test outputs
     # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
+    # Additional deps on top of minimal
+    "g++",
   ]
 }
 

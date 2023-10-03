@@ -21,11 +21,11 @@ variable "zone" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-11-minimal"
+  default = "aspect-workflows-debian-12-minimal"
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20230629"
+  source_image = "debian-12-bookworm-v20230912"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

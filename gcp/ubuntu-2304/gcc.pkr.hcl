@@ -19,6 +19,11 @@ variable "zone" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-ubuntu-2304-gcc"
+}
+
 locals {
   source_image = "ubuntu-2304-lunar-amd64-v20230613"
 
@@ -40,8 +45,8 @@ locals {
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "aspect-workflows-ubuntu-2304-gcc"
-  image_name = "aspect-workflows-ubuntu-2304-gcc-${var.version}"
+  image_family = "${var.family}"
+  image_name = "${var.family}-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
   machine_type = "e2-medium"

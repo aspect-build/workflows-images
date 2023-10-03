@@ -21,7 +21,7 @@ variable "zone" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-debian-11-minimal"
+  default = "aspect-workflows-debian-11-kitchen-sink"
 }
 
 locals {
@@ -41,6 +41,15 @@ locals {
     # (Optional) zip is required if any tests create zips of undeclared test outputs
     # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
+    # Additional deps on top of minimal
+    "docker.io",
+    "g++",
+    "make",
+  ]
+
+  # We'll need to tell systemctl to start these when the image boots next.
+  enable_services = [
+    "docker.service",
   ]
 }
 
@@ -69,6 +78,9 @@ build {
       # Install Google Cloud Ops Agent
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
+
+      # Enable required services
+      format("sudo systemctl enable %s", join(" ", local.enable_services)),
     ]
   }
 }

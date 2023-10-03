@@ -15,6 +15,11 @@ variable "region" {
   type = string
 }
 
+variable "family" {
+  type = string
+  default = "aspect-workflows-debian-11-minimal"
+}
+
 variable "vpc_id" {
   type = string
   default = null
@@ -52,15 +57,15 @@ locals {
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-      # A dependency of Aspect Workflows
-      "rsync",
-      # Needed for bb-clientd
-      "fuse",
-      # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
-      "patch",
-      # (Optional) zip is required if any tests create zips of undeclared test outputs
-      # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
-      "zip",
+        # A dependency of Aspect Workflows
+        "rsync",
+        # Needed for bb-clientd
+        "fuse",
+        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        "patch",
+        # (Optional) zip is required if any tests create zips of undeclared test outputs
+        # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+        "zip",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
@@ -71,7 +76,7 @@ locals {
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "aspect-workflows-debian-11-minimal-${var.version}"
+  ami_name                                  = "${var.family}-${var.version}"
   instance_type                             = "t3a.small"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"

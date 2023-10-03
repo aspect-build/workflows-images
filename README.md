@@ -12,11 +12,15 @@ These include the minimal dependencies required by Workflows. Not all dependenci
 
 ### gcc
 
-This adds gcc & gcc-c++ on top of the minimal Workflows dependencies.
+This adds gcc on top of the minimal Workflows dependencies.
 
 ### docker
 
 This adds docker on top of the minimal Workflows dependencies.
+
+### kitchen-sink
+
+This adds docker, gcc and other deps such as `make` on top of the minimal Workflows dependencies.
 
 ## AWS AMIs
 
@@ -40,7 +44,7 @@ Pass `-var "encrypt_boot=true"` if you would like to build the AMI with an encry
 
 For example,
 
-`bazel run //:packer -- build -var "version=1-0-0" -var "region=us-west-2" aws/amazon-linux-2/minimal.pkr.hcl`
+`bazel run //:packer -- build -var "version=1-0-0" -var "region=us-west-2" aws/al2/minimal.pkr.hcl`
 
 ## GCP images
 
