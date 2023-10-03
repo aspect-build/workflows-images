@@ -34,6 +34,8 @@ locals {
     "rsync",
     # fuse will be optional in future release although highly recommended for better performance
     "fuse",
+    # xxd is required for Workflows bootstrap
+    "xxd",
     # Install git so we can fetch the source code to be tested, obviously!
     "git",
     # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
