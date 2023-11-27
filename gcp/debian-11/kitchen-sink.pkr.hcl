@@ -75,6 +75,11 @@ build {
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
+      # We've observed networking issues with Docker on Debian 11 that are resolved by setting
+      # { "ipv6": true, "fixed-cidr-v6": "2001:db8:1::/64" } in the daemon config.
+      "sudo mkdir -p /etc/docker",
+      "echo '{ \"ipv6\": true, \"fixed-cidr-v6\": \"2001:db8:1::/64\" }' | sudo tee /etc/docker/daemon.json",
+
       # Install Google Cloud Ops Agent
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
