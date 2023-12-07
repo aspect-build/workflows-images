@@ -42,8 +42,7 @@ You may also need to pass arguments `-var "vpc_id=<vpc_id>"` and `-var "subnet_i
 
 Pass `-var "encrypt_boot=true"` if you would like to build the AMI with an encrypted boot drive.
 
-
-By default we create amd64 (or x86_64) AMI's but arm64 images can be created by specifying the argument `-var "arch=arm64"`
+By default we create amd64 (aka x86_64) AMI's but arm64 images can be created by specifying the argument `-var "arch=arm64"`
 
 For example,
 
@@ -62,6 +61,8 @@ Then run `packer build`, passing the desired `version`, `project` & `zone` as ar
 ```
 bazel run //:packer -- build -var "version=<version>" -var "project=<project-name> -var "zone=<zone>" gcp/<distro>/<variant>.pkr.hcl
 ```
+
+By default we create amd64 (aka x86_64) images but arm64 images can be created by specifying the argument `-var "arch=arm64"`
 
 For example,
 

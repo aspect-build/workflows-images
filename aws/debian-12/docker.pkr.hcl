@@ -35,11 +35,22 @@ variable "encrypt_boot" {
   default = false
 }
 
+variable "arch" {
+  type = string
+  default = "amd64"
+  description = "Target architecture"
+
+  validation {
+    condition     = var.arch == "amd64"
+    error_message = "Only an arch of amd64 is currently supported on this distro; arm64 coming support coming soon."
+  }
+}
+
 # Lookup the base AMI we want
 data "amazon-ami" "debian" {
     filters = {
         virtualization-type = "hvm"
-        name = "debian-12-amd64-20230711-1438"
+        name = "debian-12-${var.arch}-20231013-1532"
         root-device-type = "ebs"
     }
     owners = ["136693071363"] # Amazon
@@ -50,9 +61,9 @@ data "amazon-ami" "debian" {
 locals {
     install_debs = [
         # Install cloudwatch-agent so that bootstrap logs are easier to locale
-        "https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb",
+        "https://s3.amazonaws.com/amazoncloudwatch-agent/debian/${var.arch}/latest/amazon-cloudwatch-agent.deb",
         # Install system manager so it's easy to login to a machine
-        "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb",
+        "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_${var.arch}/amazon-ssm-agent.deb",
     ]
 
     # System dependencies required for Aspect Workflows or for build & test
@@ -61,12 +72,12 @@ locals {
         "rsync",
         "rsyslog",
         "mdadm",
-        # Needed for bb-clientd
+        # (optional) fuse is optional but highly recommended for better Bazel performance
         "fuse",
-        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        # (optional) patch may be used by some rulesets and package managers during dependency fetching
         "patch",
-        # (Optional) zip is required if any tests create zips of undeclared test outputs
-        # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+        # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
+        # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
         "zip",
         # Additional deps on top of minimal
         "docker.io",

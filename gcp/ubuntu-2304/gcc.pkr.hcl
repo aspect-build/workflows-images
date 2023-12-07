@@ -24,32 +24,48 @@ variable "family" {
   default = "aspect-workflows-ubuntu-2304-gcc"
 }
 
+variable "arch" {
+  type = string
+  default = "amd64"
+  description = "Target architecture"
+
+  validation {
+    condition     = var.arch == "amd64"
+    error_message = "Only an arch of amd64 is currently supported on this distro."
+  }
+}
+
 locals {
-  source_image = "ubuntu-2304-lunar-amd64-v20230613"
+  source_image = "ubuntu-2304-lunar-${var.arch}-v20231030"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
     # Google operational monitoring tools, which are used to collect and alarm on critical telemetry.
     "google-osconfig-agent",
-    # fuse will be optional in future releases although highly recommended for better performance
+    # (optional) fuse is optional but highly recommended for better Bazel performance
     "fuse",
-    # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+    # (optional) patch may be used by some rulesets and package managers during dependency fetching
     "patch",
-    # (Optional) zip is required if any tests create zips of undeclared test outputs
-    # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+    # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
+    # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     "zip",
     # Additional deps on top of minimal
     "g++",
   ]
+
+  machine_types = {
+    amd64 = "e2-medium"
+    arm64 = "t2a-standard-1"
+  }
 }
 
 source "googlecompute" "image" {
   project_id = "${var.project}"
-  image_family = "${var.family}"
-  image_name = "${var.family}-${var.version}"
+  image_family = "${var.family}-${var.arch}"
+  image_name = "${var.family}-${var.arch}-${var.version}"
   source_image = "${local.source_image}"
   ssh_username = "packer"
-  machine_type = "e2-medium"
+  machine_type = "${local.machine_types[var.arch]}"
   zone = "${var.zone}"
 }
 

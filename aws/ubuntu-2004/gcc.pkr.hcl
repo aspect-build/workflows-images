@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-ubuntu-20-kitchen-sink"
+  default = "aspect-workflows-ubuntu-2004-gcc"
 }
 
 variable "vpc_id" {
@@ -38,33 +38,11 @@ variable "encrypt_boot" {
 variable "arch" {
   type = string
   default = "amd64"
-  description = "Architecture to use for the ami"
+  description = "Target architecture"
 
   validation {
     condition     = var.arch == "amd64" || var.arch == "arm64"
-    error_message = "Only amd64 and arm64 architectures are available for ubuntu 20.04 AMI's."
-  }
-}
-
-variable "instance_types" {
-  type = object({
-    amd64 = string
-    arm64 = string
-  })
-  default = {
-    amd64 = "t3a.small"
-    arm64 = "c7g.medium"
-  }
-}
-
-variable "awscli_url" {
-  type = object({
-    amd64 = string
-    arm64 = string
-  })
-  default = {
-    amd64 = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
-    arm64 = "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+    error_message = "Expected arch to be either amd64 or arm64."
   }
 }
 
@@ -88,33 +66,36 @@ locals {
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-        # Dependencies of Aspect Workflows
-        "rsync",
-        "rsyslog",
-        "mdadm",
-        # Needed for bb-clientd
+        # (optional) fuse is optional but highly recommended for better Bazel performance
         "fuse",
-        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        # (optional) patch may be used by some rulesets and package managers during dependency fetching
         "patch",
-        # (Optional) zip is required if any tests create zips of undeclared test outputs
-        # For more information about undecalred test outputs, see https://bazel.build/reference/test-encyclopedia
+        # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
+        # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
         "zip",
         # Additional deps on top of minimal
-        "docker.io",
         "g++",
-        "make",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
-        "docker.service",
     ]
+
+    instance_types = {
+      amd64 = "t3a.small"
+      arm64 = "c7g.medium"
+    }
+
+    awscli_url = {
+      amd64 = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+      arm64 = "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+    }
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "${var.family}-${var.version}-${var.arch}"
-  instance_type                             = "${var.instance_types[var.arch]}"
+  ami_name                                  = "${var.family}-${var.arch}-${var.version}"
+  instance_type                             = "${local.instance_types[var.arch]}"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
   subnet_id                                 = "${var.subnet_id}"
@@ -132,8 +113,6 @@ build {
     inline = concat([
         for url in local.install_debs : format("sudo curl %s -O", url)
     ], [
-    ],
-    [
         format("sudo dpkg --install --skip-same-version %s", join(" ", [
           for url in local.install_debs : basename(url)
         ]))
@@ -144,7 +123,7 @@ build {
         # Enable required services
         format("sudo systemctl enable %s", join(" ", local.enable_services)),
     ], [
-      "curl \"${var.awscli_url[var.arch]}\" -o \"awscliv2.zip\"",
+      "curl \"${local.awscli_url[var.arch]}\" -o \"awscliv2.zip\"",
       "unzip awscliv2.zip",
       "sudo ./aws/install"
     ])
