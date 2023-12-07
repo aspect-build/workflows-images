@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-al2023-gcc"
+  default = "aspect-workflows-ubuntu-2004-docker"
 }
 
 variable "vpc_id" {
@@ -46,51 +46,51 @@ variable "arch" {
   }
 }
 
-# Lookup the base AMI we want:
-# Quickstart AMI: Amazon Linux 2023 AMI HVM kernel-6.1
-# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
-data "amazon-ami" "al2023" {
+# Lookup the base AMI we want
+data "amazon-ami" "ubuntu" {
     filters = {
         virtualization-type = "hvm"
-        name = "al2023-ami-2023.2.20231113.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
+        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20231127"
         root-device-type = "ebs"
     }
-    owners = ["137112412989"] # Amazon
+    owners = ["099720109477"] # Ubuntu
     region = "${var.region}"
     most_recent = true
 }
 
 locals {
-    source_ami = data.amazon-ami.al2023.id
+    install_debs = [
+        # Install cloudwatch-agent so that bootstrap logs are easier to locale
+        "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb",
+    ]
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-        # Dependencies of Aspect Workflows
-        "rsyslog",
-        "mdadm",
-        # Install libicu which is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
-        "libicu",
-        # Install cloudwatch-agent so that bootstrap logs are easier to locale
-        "amazon-cloudwatch-agent",
-        # git is required so we can fetch the source code to be tested, obviously!
-        "git",
         # (optional) fuse is optional but highly recommended for better Bazel performance
         "fuse",
         # (optional) patch may be used by some rulesets and package managers during dependency fetching
         "patch",
+        # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
+        # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
+        "zip",
         # Additional deps on top of minimal
-        "gcc-c++",
-        "gcc",
+        "docker.io",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
+        "docker.service",
     ]
 
     instance_types = {
       amd64 = "t3a.small"
       arm64 = "c7g.medium"
+    }
+
+    awscli_url = {
+      amd64 = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+      arm64 = "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
     }
 }
 
@@ -100,8 +100,8 @@ source "amazon-ebs" "runner" {
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
   subnet_id                                 = "${var.subnet_id}"
-  ssh_username                              = "ec2-user"
-  source_ami                                = local.source_ami
+  ssh_username                              = "ubuntu"
+  source_ami                                = data.amazon-ami.ubuntu.id
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = var.encrypt_boot
 }
@@ -110,12 +110,23 @@ build {
   sources = ["source.amazon-ebs.runner"]
 
   provisioner "shell" {
-      inline = [
-          # Install dependencies
-          format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
+    # Install dependencies
+    inline = concat([
+        for url in local.install_debs : format("sudo curl %s -O", url)
+    ], [
+        format("sudo dpkg --install --skip-same-version %s", join(" ", [
+          for url in local.install_debs : basename(url)
+        ]))
+    ], [
+        "sudo apt update",
+        format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
-          # Enable required services
-          format("sudo systemctl enable %s", join(" ", local.enable_services)),
-      ]
+        # Enable required services
+        format("sudo systemctl enable %s", join(" ", local.enable_services)),
+    ], [
+      "curl \"${local.awscli_url[var.arch]}\" -o \"awscliv2.zip\"",
+      "unzip awscliv2.zip",
+      "sudo ./aws/install"
+    ])
   }
 }

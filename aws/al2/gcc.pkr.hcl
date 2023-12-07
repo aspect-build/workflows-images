@@ -35,13 +35,24 @@ variable "encrypt_boot" {
   default = false
 }
 
+variable "arch" {
+  type = string
+  default = "amd64"
+  description = "Target architecture"
+
+  validation {
+    condition     = var.arch == "amd64" || var.arch == "arm64"
+    error_message = "Expected arch to be either amd64 or arm64."
+  }
+}
+
 # Lookup the base AMI we want:
-# Quickstart AMI: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type (x86)
+# Quickstart AMI: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
 # Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2.pkr.hcl
 data "amazon-ami" "al2" {
     filters = {
         virtualization-type = "hvm"
-        name = "amzn2-ami-kernel-5.10-hvm-2.0.20230612.0-x86_64-gp2",
+        name = "amzn2-ami-kernel-5.10-hvm-2.0.20231116.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
         root-device-type = "ebs"
     }
     owners = ["137112412989"] # Amazon
@@ -56,11 +67,11 @@ locals {
     install_packages = [
         # Install cloudwatch-agent so that bootstrap logs are easier to locale
         "amazon-cloudwatch-agent",
-        # Install fuse so that launch_bb_clientd_linux.sh can run.
-        "fuse",
-        # Install git so we can fetch the source code to be tested, obviously!
+        # git is required so we can fetch the source code to be tested, obviously!
         "git",
-        # (Optional) Patch is required by some rulesets and package managers during dependency fetching.
+        # (optional) fuse is optional but highly recommended for better Bazel performance
+        "fuse",
+        # (optional) patch may be used by some rulesets and package managers during dependency fetching
         "patch",
         # Additional deps on top of minimal
         "gcc-c++",
@@ -71,11 +82,16 @@ locals {
     enable_services = [
         "amazon-cloudwatch-agent",
     ]
+
+    instance_types = {
+      amd64 = "t3a.small"
+      arm64 = "c7g.medium"
+    }
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "${var.family}-${var.version}"
-  instance_type                             = "t3a.small"
+  ami_name                                  = "${var.family}-${var.arch}-${var.version}"
+  instance_type                             = "${local.instance_types[var.arch]}"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
   subnet_id                                 = "${var.subnet_id}"
