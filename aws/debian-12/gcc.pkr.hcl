@@ -59,6 +59,8 @@ data "amazon-ami" "debian" {
 }
 
 locals {
+    source_ami = data.amazon-ami.debian.id
+
     install_debs = [
         # Install cloudwatch-agent so that bootstrap logs are easier to locale
         "https://s3.amazonaws.com/amazoncloudwatch-agent/debian/${var.arch}/latest/amazon-cloudwatch-agent.deb",
@@ -88,16 +90,21 @@ locals {
         "amazon-cloudwatch-agent",
         "amazon-ssm-agent",
     ]
+
+    instance_types = {
+      amd64 = "t3a.small"
+      arm64 = "c7g.medium"
+    }
 }
 
 source "amazon-ebs" "runner" {
-  ami_name                                  = "${var.family}-${var.version}"
-  instance_type                             = "t3a.small"
+  ami_name                                  = "${var.family}-${var.arch}-${var.version}"
+  instance_type                             = "${local.instance_types[var.arch]}"
   region                                    = "${var.region}"
   vpc_id                                    = "${var.vpc_id}"
   subnet_id                                 = "${var.subnet_id}"
   ssh_username                              = "admin"
-  source_ami                                = data.amazon-ami.debian.id
+  source_ami                                = local.source_ami
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = var.encrypt_boot
 }
