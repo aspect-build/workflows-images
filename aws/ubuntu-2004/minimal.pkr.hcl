@@ -4,6 +4,10 @@ packer {
       version = ">= 1.1.5"
       source  = "github.com/hashicorp/amazon"
     }
+    docker = {
+      version = ">= 1.0.8"
+      source = "github.com/hashicorp/docker"
+    }
   }
 }
 
@@ -44,18 +48,6 @@ variable "arch" {
     condition     = var.arch == "amd64" || var.arch == "arm64"
     error_message = "Expected arch to be either amd64 or arm64."
   }
-}
-
-# Lookup the base AMI we want
-data "amazon-ami" "ubuntu" {
-    filters = {
-        virtualization-type = "hvm"
-        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20231127"
-        root-device-type = "ebs"
-    }
-    owners = ["099720109477"] # Ubuntu
-    region = "${var.region}"
-    most_recent = true
 }
 
 locals {
@@ -101,10 +93,44 @@ source "amazon-ebs" "runner" {
   source_ami                                = data.amazon-ami.ubuntu.id
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = var.encrypt_boot
+  source_ami_filter {
+    filters = {
+        virtualization-type = "hvm"
+        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20231127"
+        root-device-type = "ebs"
+    }
+    owners = ["099720109477"] # Ubuntu
+    most_recent = true
+  }
+}
+
+source "docker" "ubuntu" {
+  image  = "ubuntu:focal-20240216"
+  commit = true
+  // TODO: Look into using export_path here. Tried once and got an error from bazel about a missing manifest.
+  // So I just had docker export as a tar and that works for some reason. 
 }
 
 build {
-  sources = ["source.amazon-ebs.runner"]
+  sources = [
+    "source.amazon-ebs.runner",
+    "source.docker.ubuntu"
+  ]
+
+  post-processor "docker-tag" {
+    only = ["docker.ubuntu"]
+    repository =  "workflows-images"
+    tags = ["ubuntu-2004-minimal"]
+  }
+
+  provisioner "shell" {
+    only = ["docker.ubuntu"]
+    inline = [
+      "apt-get update",
+      "apt-get install sudo curl systemd -y"
+    ]
+    environment_vars = ["DEBIAN_FRONTEND=noninteractive"]
+  }
 
   provisioner "shell" {
     # Install dependencies
