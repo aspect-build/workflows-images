@@ -71,16 +71,13 @@ locals {
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
         # Dependencies of Aspect Workflows
-        "rsync",
-        "rsyslog",
-        "mdadm",
-        # (optional) fuse is optional but highly recommended for better Bazel performance
-        "fuse",
-        # (optional) patch may be used by some rulesets and package managers during dependency fetching
-        "patch",
-        # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
-        # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
-        "zip",
+        "fuse",  # required for the Workflows high-performance remote cache configuration
+        "mdadm",  # required for mounting multiple nvme drives with raid 0
+        "rsync",  # required for bootstrap
+        "rsyslog",  # reqired for system logging
+        # Optional but recommended dependencies
+        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
+        "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.

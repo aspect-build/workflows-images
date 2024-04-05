@@ -66,18 +66,14 @@ locals {
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
         # Dependencies of Aspect Workflows
-        "rsyslog",
-        "mdadm",
-        # Install libicu which is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
-        "libicu",
-        # Install cloudwatch-agent so that bootstrap logs are easier to locale
-        "amazon-cloudwatch-agent",
-        # git is required so we can fetch the source code to be tested, obviously!
-        "git",
-        # (optional) fuse is optional but highly recommended for better Bazel performance
-        "fuse",
-        # (optional) patch may be used by some rulesets and package managers during dependency fetching
-        "patch",
+        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locate
+        "fuse",  # required for the Workflows high-performance remote cache configuration
+        "git",  # required so we can fetch the source code to be tested, obviously!
+        "libicu",  # libicu is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
+        "mdadm",  # required for mounting multiple nvme drives with raid 0
+        "rsyslog",  # reqired for system logging
+        # Optional but recommended dependencies
+        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.

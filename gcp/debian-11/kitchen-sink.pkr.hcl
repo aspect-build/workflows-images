@@ -40,19 +40,14 @@ locals {
 
   # System dependencies required for Aspect Workflows
   install_packages = [
-    # Google operational monitoring tools, which are used to collect and alarm on critical telemetry.
-    "google-osconfig-agent",
     # Dependencies of Aspect Workflows
-    "rsync",
-    # git is required so we can fetch the source code to be tested, obviously!
-    "git",
-    # (optional) fuse is optional but highly recommended for better Bazel performance
-    "fuse",
-    # (optional) patch may be used by some rulesets and package managers during dependency fetching
-    "patch",
-    # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
-    # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
-    "zip",
+    "fuse",  # required for the Workflows high-performance remote cache configuration
+    "git",  # required so we can fetch the source code to be tested, obviously!
+    "google-osconfig-agent",  # Google operational monitoring tools used to collect and alarm on critical telemetry
+    "rsync",  # reqired for bootstrap
+    # Optional but recommended dependencies
+    "patch",  # patch may be used by some rulesets and package managers during dependency fetching
+    "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "docker.io",
     "g++",
