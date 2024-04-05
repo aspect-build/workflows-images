@@ -66,13 +66,11 @@ locals {
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-        # (optional) fuse is optional but highly recommended for better Bazel performance
-        "fuse",
-        # (optional) patch may be used by some rulesets and package managers during dependency fetching
-        "patch",
-        # (optional) zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips;
-        # for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
-        "zip",
+        # Dependencies of Aspect Workflows
+        "fuse",  # required for the Workflows high-performance remote cache configuration
+        # Optional but recommended dependencies
+        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
+        "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
         # Additional deps on top of minimal
         "docker.io",
     ]

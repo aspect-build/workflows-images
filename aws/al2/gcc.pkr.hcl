@@ -65,14 +65,12 @@ locals {
 
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
-        # Install cloudwatch-agent so that bootstrap logs are easier to locale
-        "amazon-cloudwatch-agent",
-        # git is required so we can fetch the source code to be tested, obviously!
-        "git",
-        # (optional) fuse is optional but highly recommended for better Bazel performance
-        "fuse",
-        # (optional) patch may be used by some rulesets and package managers during dependency fetching
-        "patch",
+        # Dependencies of Aspect Workflows
+        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locale
+        "fuse",  # required for the Workflows high-performance remote cache configuration
+        "git",  # required so we can fetch the source code to be tested, obviously!
+        # Optional but recommended dependencies
+        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
         # Additional deps on top of minimal
         "gcc-c++",
         "gcc",
