@@ -66,7 +66,7 @@ locals {
     # System dependencies required for Aspect Workflows or for build & test
     install_packages = [
         # Dependencies of Aspect Workflows
-        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locale
+        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locate
         "fuse",  # required for the Workflows high-performance remote cache configuration
         "git",  # required so we can fetch the source code to be tested, obviously!
         "libicu",  # libicu is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
