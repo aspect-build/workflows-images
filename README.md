@@ -29,13 +29,13 @@ AWS AMI packer files are found under the `/aws` directory.
 To build AMS AMI's, first run `packer init`. This is only required once.
 
 ```
-bazel run //:packer -- init aws/<distro>/<variant>.pkr.hcl"
+./tools/packer init aws/<distro>/<variant>.pkr.hcl"
 ```
 
 Then run `packer build` passing the desired `version` and `region` as arguments.
 
 ```
-bazel run //:packer -- build -var "version=<version>" -var "region=<region> aws/<distro>/<variant>.pkr.hcl"
+./tools/packer build -var "version=<version>" -var "region=<region> aws/<distro>/<variant>.pkr.hcl"
 ```
 
 You may also need to pass arguments `-var "vpc_id=<vpc_id>"` and `-var "subnet_id=<subnet_id>"` arguments if there is no default vpc in the region.

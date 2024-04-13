@@ -113,7 +113,7 @@ function build_aws() {
   # build the AMI
   echo "Building $name"
   date
-  bazel run //:packer -- build -var "version=${dash_version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  ./tools/packer build -var "version=${dash_version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
   date
 
   # determine the ID of the new AMI
@@ -200,7 +200,7 @@ function build_gcp() {
   # build the AMI
   echo "Building $name"
   date
-  bazel run //:packer -- build -var "version=${dash_version}" -var "project=aspect-workflows-images" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  ./tools/packer build -var "version=${dash_version}" -var "project=aspect-workflows-images" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
   date
 
   # set newly built image to public
