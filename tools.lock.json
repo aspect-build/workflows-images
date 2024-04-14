@@ -1,0 +1,40 @@
+{
+    "$schema": "https://raw.githubusercontent.com/theoremlp/rules_multitool/main/lockfile.schema.json",
+    "packer": {
+      "binaries": [
+        {
+          "kind": "archive",
+          "url": "https://releases.hashicorp.com/packer/1.10.2/packer_1.10.2_linux_arm64.zip",
+          "sha256": "c87ac9845a6cbabeb397d46948a2d59111d87c6413fe837aafbaee9cf602e0a9",
+          "file": "packer",
+          "os": "linux",
+          "cpu": "arm64"
+        },
+        {
+          "kind": "archive",
+          "url": "https://releases.hashicorp.com/packer/1.10.2/packer_1.10.2_linux_amd64.zip",
+          "sha256": "6ed412d212e6948f956a92099d6f941ddb470ff30ab40432622f5e68d594ec46",
+          "file": "packer",
+          "os": "linux",
+          "cpu": "x86_64"
+        },
+        {
+          "kind": "archive",
+          "url": "https://releases.hashicorp.com/packer/1.10.2/packer_1.10.2_darwin_arm64.zip",
+          "sha256": "b23ebef504b48a6d99b975726eb593504bfe1858f63609418e4704c19ef4e538",
+          "file": "packer",
+          "os": "macos",
+          "cpu": "arm64"
+        },
+        {
+          "kind": "archive",
+          "url": "https://releases.hashicorp.com/packer/1.10.2/packer_1.10.2_darwin_amd64.zip",
+          "sha256": "fd5e20c951051e9533175a6958eb11233921f62141c749149ef12992073c7c77",
+          "file": "packer",
+          "os": "macos",
+          "cpu": "x86_64"
+        }
+      ]
+    }
+}
+  

@@ -1,3 +1,0 @@
-load("//:packer.bzl", "packer")
-
-packer(name = "packer")
