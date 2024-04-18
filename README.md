@@ -2,8 +2,6 @@
 
 Collection of packer scripts to create AMIs and GCP images for use with Aspect Workflows.
 
-See https://docs.aspect.build/v/workflows/install/packer for accompanying Aspect Workflows documentation.
-
 ## Variants
 
 ### minimal
