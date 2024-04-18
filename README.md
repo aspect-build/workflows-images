@@ -1,6 +1,9 @@
-# Aspect Workflows images
+# Aspect Workflows Starter Images
 
-Collection of packer scripts to create AMIs and GCP images for use with Aspect Workflows.
+Collection of packer scripts to create machine images for use with Aspect Workflows used to build Aspect Workflows starter images for AWS and GCP.
+
+> [!TIP]
+> These open source packer scripts may also be used as references for building custom machine images for Aspect Workflows.
 
 ## Variants
 
