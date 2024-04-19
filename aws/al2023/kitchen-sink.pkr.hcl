@@ -79,6 +79,13 @@ locals {
         "gcc-c++",
         "gcc",
         "make",
+        # START cypress deps
+        # https://docs.cypress.io/guides/getting-started/installing-cypress#Amazon-Linux-2023
+        "xorg-x11-server-Xvfb",
+        "gtk3-devel",
+        "nss",
+        "alsa-li",
+        # END cypress deps
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.

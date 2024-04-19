@@ -80,6 +80,19 @@ locals {
         "docker.io",
         "g++",
         "make",
+        # START cypress deps
+        # https://docs.cypress.io/guides/getting-started/installing-cypress#UbuntuDebian
+        "libgtk2.0-0",
+        "libgtk-3-0",
+        "libgbm-dev",
+        "libnotify-dev",
+        "libnss3",
+        "libxss1",
+        "libasound2",
+        "libxtst6",
+        "xauth",
+        "xvfb",
+        # END cypress deps
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
