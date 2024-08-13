@@ -21,7 +21,7 @@ variable "zone" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-ubuntu-2304-docker"
+  default = "aspect-workflows-ubuntu-2404-docker"
 }
 
 variable "arch" {
@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "ubuntu-2304-lunar-${var.arch}-v20231030"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20240809"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

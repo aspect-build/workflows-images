@@ -21,7 +21,7 @@ variable "zone" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-ubuntu-2304-gcc"
+  default = "aspect-workflows-ubuntu-2404-kitchen-sink"
 }
 
 variable "arch" {
@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "ubuntu-2304-lunar-${var.arch}-v20231030"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20240809"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -47,7 +47,14 @@ locals {
     "patch",  # patch may be used by some rulesets and package managers during dependency fetching
     "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
+    "docker.io",
     "g++",
+    "make",
+  ]
+
+  # We'll need to tell systemctl to start these when the image boots next.
+  enable_services = [
+    "docker.service",
   ]
 
   machine_types = {
@@ -92,6 +99,9 @@ build {
       # Install Google Cloud Ops Agent
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
+
+      # Enable required services
+      format("sudo systemctl enable %s", join(" ", local.enable_services)),
     ]
   }
 }
