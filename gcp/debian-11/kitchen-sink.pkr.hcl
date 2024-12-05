@@ -51,6 +51,7 @@ locals {
     # Additional deps on top of minimal
     "docker.io",
     "g++",
+    "jq",
     "make",
   ]
 

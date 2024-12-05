@@ -78,6 +78,7 @@ locals {
         "docker",
         "gcc-c++",
         "gcc",
+        "jq",
         "make",
     ]
 
