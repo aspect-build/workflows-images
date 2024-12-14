@@ -72,6 +72,7 @@ locals {
     install_packages = [
         # Dependencies of Aspect Workflows
         "fuse",  # required for the Workflows high-performance remote cache configuration
+        "git",  # required so we can fetch the source code to be tested, obviously!
         "rsync",  # required for bootstrap
         # Optional but recommended dependencies
         "patch",  # patch may be used by some rulesets and package managers during dependency fetching

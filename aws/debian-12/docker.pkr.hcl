@@ -72,6 +72,7 @@ locals {
     install_packages = [
         # Dependencies of Aspect Workflows
         "fuse",  # required for the Workflows high-performance remote cache configuration
+        "git",  # required so we can fetch the source code to be tested, obviously!
         "mdadm",  # required for mounting multiple nvme drives with raid 0
         "rsync",  # required for bootstrap
         "rsyslog",  # reqired for system logging
