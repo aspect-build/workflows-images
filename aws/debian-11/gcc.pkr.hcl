@@ -42,7 +42,7 @@ variable "arch" {
 
   validation {
     condition     = var.arch == "amd64"
-    error_message = "Only an arch of amd64 is currently supported on this distro; arm64 coming support coming soon."
+    error_message = "Only an arch of amd64 is currently supported on this distro."
   }
 }
 

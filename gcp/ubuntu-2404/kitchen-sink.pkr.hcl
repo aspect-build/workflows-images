@@ -30,13 +30,13 @@ variable "arch" {
   description = "Target architecture"
 
   validation {
-    condition     = var.arch == "amd64"
-    error_message = "Only an arch of amd64 is currently supported on this distro."
+    condition     = var.arch == "amd64" || var.arch == "arm64"
+    error_message = "Expected arch to be either amd64 or arm64."
   }
 }
 
 locals {
-  source_image = "ubuntu-2404-noble-${var.arch}-v20240809"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20241115"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

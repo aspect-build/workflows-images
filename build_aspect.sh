@@ -104,12 +104,12 @@ function build_aws() {
   if [ "$distro" == "debian-11" ] && [ "$arch" == "arm64" ]; then
     # No arm64 arch available for debian-11 yet.
     # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping $name (no arm64 support for $distro yet)"
+    echo "Skipping $name (currently no arm64 support for $distro)"
     return
   elif [ "$distro" == "debian-12" ] && [ "$arch" == "arm64" ]; then
     # No arm64 arch available for debian-12 yet.
     # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping $name (no arm64 support for $distro yet)"
+    echo "Skipping $name (currently no arm64 support for $distro)"
     return
   fi
 
@@ -191,14 +191,13 @@ function build_gcp() {
   local family="aspect-workflows-${distro}-${variant}"
   local name="${family}-${arch}-${version}"
 
-  echo -e "\n\n\n\n=================================================="
-
-  if [ "$distro" == "ubuntu-2304" ] && [ "$arch" == "arm64" ]; then
-    # No arm64 arch available for ubuntu-2304 yet.
-    # Iamge build fails with "Unable to locate package google-cloud-ops-agent".
-    echo "Skipping $name (no arm64 support for $distro yet)"
+  if [ "$distro" == "debian-11" ] && [ "$arch" == "arm64" ]; then
+    # No arm64 arch base image available for debian-11 on GCP.
+    echo "Skipping $name (currently no arm64 support for $distro)"
     return
   fi
+
+  echo -e "\n\n\n\n=================================================="
 
   # build the AMI
   echo "Building $name"

@@ -24,19 +24,20 @@ variable "family" {
   default = "aspect-workflows-debian-11-docker"
 }
 
+
 variable "arch" {
   type = string
   default = "amd64"
   description = "Target architecture"
 
   validation {
-    condition     = var.arch == "amd64" || var.arch == "arm64"
-    error_message = "Expected arch to be either amd64 or arm64."
+    condition     = var.arch == "amd64"
+    error_message = "Only an arch of amd64 is currently supported on this distro."
   }
 }
 
 locals {
-  source_image = "debian-11-bullseye-${var.arch == "arm64" ? "arm64-" : ""}v20231115"
+  source_image = "debian-11-bullseye-v20241210"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

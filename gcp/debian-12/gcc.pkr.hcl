@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20231115"
+  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20241210"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
