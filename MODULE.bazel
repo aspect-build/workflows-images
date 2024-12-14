@@ -1,6 +1,0 @@
-bazel_dep(name = "aspect_bazel_lib", version = "1.33.0")
-bazel_dep(name = "rules_multitool", version = "0.6.0")
-
-multitool = use_extension("@rules_multitool//multitool:extension.bzl", "multitool")
-multitool.hub(lockfile = "//:tools.lock.json")
-use_repo(multitool, "multitool")

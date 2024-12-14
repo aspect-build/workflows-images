@@ -6,12 +6,14 @@ current_date=$(date +"%Y%m%d")
 build_number=0 # increment if building multiple times on the same day, otherwise leave at 0
 
 # version is the date built in yyyymmdd format, followed by a dash and the zero build number on that date
-version="$current_date-$build_number"
+version="${current_date}-${build_number}"
 
 architectures=(
   amd64
   arm64
 )
+
+aws_profile=workflows-images
 
 aws_regions=(
   us-west-1
@@ -19,6 +21,8 @@ aws_regions=(
   us-east-1
   us-east-2
 )
+
+gcp_project=aspect-workflows-images
 
 gcp_zone="us-central1-a"
 
@@ -65,79 +69,91 @@ images=(
     gcp/ubuntu-2404/minimal.pkr.hcl
 )
 
+if [ "${1:-}" ]; then
+  images=("$1")
+fi
+
 function main() {
-  for image in ${images[@]}; do
+  for image in "${images[@]}"; do
     IFS='/' read -a elems <<< "${image}"
-    cloud=${elems[0]}
-    distro=${elems[1]}
-    file=${elems[2]}
-    variant=${file%.pkr.hcl}
-    if [ "$cloud" == "aws" ]; then
-      for arch in ${architectures[@]}; do
-        build_aws $distro $variant $arch
+    cloud="${elems[0]}"
+    distro="${elems[1]}"
+    file="${elems[2]}"
+    variant="${file%.pkr.hcl}"
+    if [ "${cloud}" == "aws" ]; then
+      for arch in "${architectures[@]}"; do
+        build_aws "${distro}" "${variant}" "${arch}"
       done
-    elif [ "$cloud" == "gcp" ]; then
+    elif [ "${cloud}" == "gcp" ]; then
       for arch in ${architectures[@]}; do
-        build_gcp $distro $variant $arch
+        build_gcp "${distro}" "${variant}" "${arch}"
       done
     else
-      echo "ERROR: unrecognized cloud '$cloud'"
+      echo "ERROR: unrecognized cloud '${cloud}'"
       exit 1
     fi
   done
 }
 
 function build_aws() {
-  local distro=$1
-  local variant=$2
-  local arch=$3
+  local distro="$1"
+  local variant="$2"
+  local arch="$3"
 
   local packer_file="aws/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
   local name="${family}-${arch}-${version}"
 
-  local build_region=${aws_regions[0]}
+  local build_region="${aws_regions[0]}"
   local copy_regions=("${aws_regions[@]:1}")
 
   echo -e "\n\n\n\n=================================================="
 
-  if [ "$distro" == "debian-11" ] && [ "$arch" == "arm64" ]; then
+  if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch available for debian-11 yet.
     # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping $name (currently no arm64 support for $distro)"
+    echo "Skipping ${name} (currently no arm64 support for ${distro})"
     return
-  elif [ "$distro" == "debian-12" ] && [ "$arch" == "arm64" ]; then
+  elif [ "${distro}" == "debian-12" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch available for debian-12 yet.
     # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping $name (currently no arm64 support for $distro)"
+    echo "Skipping ${name} (currently no arm64 support for ${distro})"
     return
   fi
 
+  # init packer
+  echo "Packer init for ${name}"
+  set -x
+  packer init "${packer_file}"
+  set +x
+
   # build the AMI
-  echo "Building $name"
+  echo "Building ${name}"
   date
-  ./tools/packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  set -x
+  AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  set +x
   date
 
   # determine the ID of the new AMI
-  describe_images=$(aws ec2 describe-images --region ${build_region} --filters aws ec2 describe-images --filters Name=name,Values=${name})
-  amis=($(echo "$describe_images" | jq  .Images[0].ImageId | jq . -r))
+  describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}")
+  amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
   if [ -z "${amis:-}" ]; then
-    echo "ERROR: image $name not found in $build_region"
+    echo "ERROR: image $name not found in ${build_region}"
     exit 1
   fi
   if [ "${#amis[@]}" -ne 1 ]; then
-    echo "ERROR: expected 1 $name image in $build_region"
+    echo "ERROR: expected 1 ${name} image in ${build_region}"
     exit 1
   fi
   ami="${amis[0]}"
   # set newly built image to public
-  aws ec2 modify-image-attribute --region ${build_region} --image-id "$ami" --launch-permission "Add=[{Group=all}]"
+  aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${build_region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
 
   # copy the new AMI to all copy regions
   for copy_region in ${copy_regions[@]}; do
-    echo "Copying $name ("$ami") to ${copy_region}"
-    aws ec2 copy-image --region "$copy_region" --name "$name" --source-region "$build_region" --source-image-id "$ami"
+    echo "Copying ${name} ("${ami}") to ${copy_region}"
+    aws ec2 copy-image --profile "${aws_profile}" --region "${copy_region}" --name "${name}" --source-region "${build_region}" --source-image-id "${ami}"
   done
   date
 
@@ -145,36 +161,36 @@ function build_aws() {
   echo "Waiting until all image copies are available..."
   available=0
   num_copy_regions="${#copy_regions[@]}"
-  until [ $available -eq $num_copy_regions ]
+  until [ "${available}" -eq "${num_copy_regions}" ]
   do
     sleep 10
     available=0
-    for copy_region in ${copy_regions[@]}; do
-      describe_images=$(aws ec2 describe-images --region ${copy_region} --filters aws ec2 describe-images --filters Name=name,Values=${name})
-      states=($(echo "$describe_images" | jq  .Images[0].State | jq . -r))
-      amis=($(echo "$describe_images" | jq  .Images[0].ImageId | jq . -r))
+    for copy_region in "${copy_regions[@]}"; do
+      describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${copy_region}" --filters "Name=name,Values=${name}")
+      states=($(echo "${describe_images}" | jq  .Images[0].State | jq . -r))
+      amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
       if [ -z "${states:-}" ]; then
-        echo "ERROR: image $name not found in $copy_region"
+        echo "ERROR: image ${name} not found in ${copy_region}"
         exit 1
       fi
       if [ -z "${amis:-}" ]; then
-        echo "ERROR: image $name not found in $copy_region"
+        echo "ERROR: image ${name} not found in ${copy_region}"
         exit 1
       fi
       if [ "${#states[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 $name image in $copy_region"
+        echo "ERROR: expected 1 ${name} image in ${copy_region}"
         exit 1
       fi
       if [ "${#amis[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 $name image in $copy_region"
+        echo "ERROR: expected 1 ${name} image in ${copy_region}"
         exit 1
       fi
       state="${states[0]}"
       ami="${amis[0]}"
-      echo "$name in $copy_region is $state"
-      if [ "$state" == "available" ]; then
+      echo "${name} in ${copy_region} is ${state}"
+      if [ "${state}" == "available" ]; then
         # set image to public once it is available; this can be safely called multiple times
-        aws ec2 modify-image-attribute --region ${copy_region} --image-id "$ami" --launch-permission "Add=[{Group=all}]"
+        aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${copy_region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
          ((available++))
       fi
     done
@@ -183,31 +199,39 @@ function build_aws() {
 }
 
 function build_gcp() {
-  local distro=$1
-  local variant=$2
-  local arch=$3
+  local distro="$1"
+  local variant="$2"
+  local arch="$3"
 
   local packer_file="gcp/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
   local name="${family}-${arch}-${version}"
 
-  if [ "$distro" == "debian-11" ] && [ "$arch" == "arm64" ]; then
+  if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch base image available for debian-11 on GCP.
-    echo "Skipping $name (currently no arm64 support for $distro)"
+    echo "Skipping ${name} (currently no arm64 support for ${distro})"
     return
   fi
 
   echo -e "\n\n\n\n=================================================="
 
+  # init packer
+  echo "Packer init for ${name}"
+  set -x
+  packer init "${packer_file}"
+  set +x
+
   # build the AMI
-  echo "Building $name"
+  echo "Building ${name}"
   date
-  ./tools/packer build -var "version=${version}" -var "project=aspect-workflows-images" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  set -x
+  packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  set +x
   date
 
   # set newly built image to public
-  gcloud config set project aspect-workflows-images
-  gcloud compute images add-iam-policy-binding "$name" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
+  gcloud config set project "${gcp_project}"
+  gcloud compute images add-iam-policy-binding "${name}" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
 }
 
 main
