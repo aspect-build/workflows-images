@@ -58,11 +58,11 @@ images=(
     gcp/debian-12/gcc.pkr.hcl
     gcp/debian-12/kitchen-sink.pkr.hcl
     gcp/debian-12/minimal.pkr.hcl
-    # GCP ubuntu 2304
-    gcp/ubuntu-2304/docker.pkr.hcl
-    gcp/ubuntu-2304/gcc.pkr.hcl
-    gcp/ubuntu-2304/kitchen-sink.pkr.hcl
-    gcp/ubuntu-2304/minimal.pkr.hcl
+    # GCP ubuntu 2404
+    gcp/ubuntu-2404/docker.pkr.hcl
+    gcp/ubuntu-2404/gcc.pkr.hcl
+    gcp/ubuntu-2404/kitchen-sink.pkr.hcl
+    gcp/ubuntu-2404/minimal.pkr.hcl
 )
 
 function main() {
