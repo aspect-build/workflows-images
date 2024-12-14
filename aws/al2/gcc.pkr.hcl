@@ -47,12 +47,12 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want:
-# Quickstart AMI: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
-# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2.pkr.hcl
+# Amazon Linux 2 Kernel 5.10 AMI <rev> <arch> HVM gp2
+# https://github.com/aws/amazon-ecs-ami/blob/main/al2kernel5dot10.pkr.hcl
 data "amazon-ami" "al2" {
     filters = {
         virtualization-type = "hvm"
-        name = "amzn2-ami-kernel-5.10-hvm-2.0.20231116.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+        name = "amzn2-ami-kernel-5.10-hvm-2.0.20241113.1-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
         root-device-type = "ebs"
     }
     owners = ["137112412989"] # Amazon

@@ -47,10 +47,11 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want
+# Debian 12 (<rev>)
 data "amazon-ami" "debian" {
     filters = {
         virtualization-type = "hvm"
-        name = "debian-12-${var.arch}-20231013-1532"
+        name = "debian-12-${var.arch}-20241201-1948"
         root-device-type = "ebs"
     }
     owners = ["136693071363"] # Amazon

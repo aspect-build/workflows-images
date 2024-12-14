@@ -47,12 +47,12 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want:
-# Quickstart AMI: Amazon Linux 2023 AMI HVM kernel-6.1
-# Definition of this AMI: https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
+# Amazon Linux 2023 AMI <rev> <arch> HVM kernel-6.1
+# https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
 data "amazon-ami" "al2023" {
     filters = {
         virtualization-type = "hvm"
-        name = "al2023-ami-2023.2.20231113.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
+        name = "al2023-ami-2023.6.20241212.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
         root-device-type = "ebs"
     }
     owners = ["137112412989"] # Amazon

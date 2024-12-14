@@ -47,13 +47,14 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want
+# Canonical, Ubuntu, 20.04 LTS, <arch> focal image build on <rev>
 data "amazon-ami" "ubuntu" {
     filters = {
         virtualization-type = "hvm"
-        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20231127"
+        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20241112"
         root-device-type = "ebs"
     }
-    owners = ["099720109477"] # Ubuntu
+    owners = ["099720109477"] # amazon
     region = "${var.region}"
     most_recent = true
 }
