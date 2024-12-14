@@ -2,8 +2,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-version="1.6.0"
-dash_version=${version//\./-}
+current_date=$(date +"%Y%m%d")
+build_number=0 # increment if building multiple times on the same day, otherwise leave at 0
+
+# version is the date built in yyyymmdd format, followed by a dash and the zero build number on that date
+version="$current_date-$build_number"
 
 architectures=(
   amd64
@@ -91,7 +94,7 @@ function build_aws() {
 
   local packer_file="aws/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
-  local name="${family}-${arch}-${dash_version}"
+  local name="${family}-${arch}-${version}"
 
   local build_region=${aws_regions[0]}
   local copy_regions=("${aws_regions[@]:1}")
@@ -113,7 +116,7 @@ function build_aws() {
   # build the AMI
   echo "Building $name"
   date
-  ./tools/packer build -var "version=${dash_version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  ./tools/packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
   date
 
   # determine the ID of the new AMI
@@ -186,7 +189,7 @@ function build_gcp() {
 
   local packer_file="gcp/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
-  local name="${family}-${arch}-${dash_version}"
+  local name="${family}-${arch}-${version}"
 
   echo -e "\n\n\n\n=================================================="
 
@@ -200,7 +203,7 @@ function build_gcp() {
   # build the AMI
   echo "Building $name"
   date
-  ./tools/packer build -var "version=${dash_version}" -var "project=aspect-workflows-images" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  ./tools/packer build -var "version=${version}" -var "project=aspect-workflows-images" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
   date
 
   # set newly built image to public
