@@ -49,9 +49,12 @@ locals {
     "patch",  # patch may be used by some rulesets and package managers during dependency fetching
     "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
+    "clang",
+    "cmake",
     "docker.io",
     "g++",
     "jq",
+    "libzstd",
     "make",
   ]
 
