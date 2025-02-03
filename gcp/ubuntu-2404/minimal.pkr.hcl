@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "ubuntu-2404-noble-${var.arch}-v20241115"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20250130"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

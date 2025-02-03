@@ -13,7 +13,7 @@ architectures=(
   arm64
 )
 
-aws_profile=workflows-images
+aws_profile=workflows-images_AspectAdministration
 
 aws_regions=(
   us-west-1
@@ -26,7 +26,7 @@ gcp_project=aspect-workflows-images
 
 gcp_zone="us-central1-a"
 
-images=(
+all_images=(
     # AWS amazon linux 2
     aws/al2/docker.pkr.hcl
     aws/al2/gcc.pkr.hcl
@@ -52,6 +52,11 @@ images=(
     aws/ubuntu-2004/gcc.pkr.hcl
     aws/ubuntu-2004/kitchen-sink.pkr.hcl
     aws/ubuntu-2004/minimal.pkr.hcl
+    # AWS ubuntu 2404
+    aws/ubuntu-2404/docker.pkr.hcl
+    aws/ubuntu-2404/gcc.pkr.hcl
+    aws/ubuntu-2404/kitchen-sink.pkr.hcl
+    aws/ubuntu-2404/minimal.pkr.hcl
     # GCP debian 11
     gcp/debian-11/docker.pkr.hcl
     gcp/debian-11/gcc.pkr.hcl
@@ -69,11 +74,37 @@ images=(
     gcp/ubuntu-2404/minimal.pkr.hcl
 )
 
-if [ "${1:-}" ]; then
-  images=("$1")
-fi
+continue_or_exit() {
+  read -p "$1 (y/N): " -n 1 choice
+  echo
+  case "$choice" in
+    [Yy]*) return 0 ;;
+    *) exit 0 ;;
+  esac
+}
 
 function main() {
+  images=()
+  if [[ -z "${1:-}" ]]; then
+    images=("${all_images[@]}")
+  else
+    for i in "${all_images[@]}"; do
+      for m in "$@"; do
+        if [[ "$i" =~ "${m}" ]]; then
+          images+=("${i}")
+        fi
+      done
+    done
+  fi
+
+  echo -e "\nThe following images will be built at version ${version}:"
+  for i in "${images[@]}"; do
+    echo -e "  - ${i}"
+  done
+
+  echo ""
+  continue_or_exit "❓ Are you sure you want to proceed?"
+
   for image in "${images[@]}"; do
     IFS='/' read -a elems <<< "${image}"
     cloud="${elems[0]}"
@@ -207,13 +238,13 @@ function build_gcp() {
   local family="aspect-workflows-${distro}-${variant}"
   local name="${family}-${arch}-${version}"
 
+  echo -e "\n\n\n\n=================================================="
+
   if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch base image available for debian-11 on GCP.
     echo "Skipping ${name} (currently no arm64 support for ${distro})"
     return
   fi
-
-  echo -e "\n\n\n\n=================================================="
 
   # init packer
   echo "Packer init for ${name}"
@@ -234,4 +265,4 @@ function build_gcp() {
   gcloud compute images add-iam-policy-binding "${name}" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
 }
 
-main
+main "$@"

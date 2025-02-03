@@ -52,7 +52,7 @@ variable "arch" {
 data "amazon-ami" "al2" {
     filters = {
         virtualization-type = "hvm"
-        name = "amzn2-ami-kernel-5.10-hvm-2.0.20241113.1-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+        name = "amzn2-ami-kernel-5.10-hvm-2.0.20250123.4-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
         root-device-type = "ebs"
     }
     owners = ["137112412989"] # Amazon

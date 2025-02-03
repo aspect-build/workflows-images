@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-ubuntu-2004-kitchen-sink"
+  default = "aspect-workflows-ubuntu-2404-minimal"
 }
 
 variable "vpc_id" {
@@ -47,11 +47,11 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want
-# Canonical, Ubuntu, 20.04 LTS, <arch> focal image build on <rev>
+# Canonical, Ubuntu, 24.04 LTS, <arch> focal image build on <rev>
 data "amazon-ami" "ubuntu" {
     filters = {
         virtualization-type = "hvm"
-        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250111"
+        name = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250115"
         root-device-type = "ebs"
     }
     owners = ["099720109477"] # amazon
@@ -72,20 +72,11 @@ locals {
         # Optional but recommended dependencies
         "patch",  # patch may be used by some rulesets and package managers during dependency fetching
         "zip",  # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
-        # Additional deps on top of minimal
-        "clang",
-        "cmake",
-        "docker.io",
-        "g++",
-        "jq",
-        "libzstd1",
-        "make",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.
     enable_services = [
         "amazon-cloudwatch-agent",
-        "docker.service",
     ]
 
     instance_types = {
@@ -119,8 +110,6 @@ build {
     inline = concat([
         for url in local.install_debs : format("sudo curl %s -O", url)
     ], [
-    ],
-    [
         format("sudo dpkg --install --skip-same-version %s", join(" ", [
           for url in local.install_debs : basename(url)
         ]))

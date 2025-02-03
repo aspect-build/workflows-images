@@ -51,7 +51,7 @@ variable "arch" {
 data "amazon-ami" "ubuntu" {
     filters = {
         virtualization-type = "hvm"
-        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20241112"
+        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250111"
         root-device-type = "ebs"
     }
     owners = ["099720109477"] # amazon

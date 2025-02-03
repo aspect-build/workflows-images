@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20241210"
+  source_image = "debian-11-bullseye-v20250123"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -54,7 +54,7 @@ locals {
     "docker.io",
     "g++",
     "jq",
-    "libzstd",
+    "libzstd1",
     "make",
   ]
 

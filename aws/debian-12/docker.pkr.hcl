@@ -51,7 +51,7 @@ variable "arch" {
 data "amazon-ami" "debian" {
     filters = {
         virtualization-type = "hvm"
-        name = "debian-12-${var.arch}-20241201-1948"
+        name = "debian-12-${var.arch}-20250115-1993"
         root-device-type = "ebs"
     }
     owners = ["136693071363"] # Amazon

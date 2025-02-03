@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type = string
-  default = "aspect-workflows-ubuntu-2004-kitchen-sink"
+  default = "aspect-workflows-ubuntu-2404-kitchen-sink"
 }
 
 variable "vpc_id" {
@@ -47,11 +47,11 @@ variable "arch" {
 }
 
 # Lookup the base AMI we want
-# Canonical, Ubuntu, 20.04 LTS, <arch> focal image build on <rev>
+# Canonical, Ubuntu, 24.04 LTS, <arch> focal image build on <rev>
 data "amazon-ami" "ubuntu" {
     filters = {
         virtualization-type = "hvm"
-        name = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250111"
+        name = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250115"
         root-device-type = "ebs"
     }
     owners = ["099720109477"] # amazon
@@ -80,6 +80,7 @@ locals {
         "jq",
         "libzstd1",
         "make",
+        "yq",
     ]
 
     # We'll need to tell systemctl to enable these when the image boots next.

@@ -84,7 +84,7 @@ locals {
         "docker.io",
         "g++",
         "jq",
-        "libzstd",
+        "libzstd1",
         "make",
     ]
 

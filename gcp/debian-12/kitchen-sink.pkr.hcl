@@ -36,7 +36,7 @@ variable "arch" {
 }
 
 locals {
-  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20241210"
+  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20250113"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -54,7 +54,7 @@ locals {
     "docker.io",
     "g++",
     "jq",
-    "libzstd",
+    "libzstd1",
     "make",
     "yq",
   ]
