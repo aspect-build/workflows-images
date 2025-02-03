@@ -64,6 +64,9 @@ locals {
     source_ami = data.amazon-ami.al2.id
 
     # System dependencies required for Aspect Workflows or for build & test
+    # if you have a working docker setup, you can query the packages like so:
+    #   -> % docker run --rm -it --entrypoint bash amazonlinux:2
+    #   bash-4.2# yum search <package>
     install_packages = [
         # Dependencies of Aspect Workflows
         "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locate
@@ -72,9 +75,13 @@ locals {
         # Optional but recommended dependencies
         "patch",  # patch may be used by some rulesets and package managers during dependency fetching
         # Additional deps on top of minimal
+        "clang",
+        "cmake",
         "docker",
         "gcc-c++",
         "gcc",
+        "jq",
+        "libzstd",
         "make",
     ]
 

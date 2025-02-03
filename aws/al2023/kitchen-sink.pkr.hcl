@@ -75,10 +75,13 @@ locals {
         # Optional but recommended dependencies
         "patch",  # patch may be used by some rulesets and package managers during dependency fetching
         # Additional deps on top of minimal
+        "clang",
+        "cmake",
         "docker",
         "gcc-c++",
         "gcc",
         "jq",
+        "libzstd",
         "make",
     ]
 
