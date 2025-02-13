@@ -16,28 +16,28 @@ variable "region" {
 }
 
 variable "family" {
-  type = string
+  type    = string
   default = "aspect-workflows-al2023-gcc"
 }
 
 variable "vpc_id" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "subnet_id" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "encrypt_boot" {
-  type = bool
+  type    = bool
   default = false
 }
 
 variable "arch" {
-  type = string
-  default = "amd64"
+  type        = string
+  default     = "amd64"
   description = "Target architecture"
 
   validation {
@@ -46,48 +46,52 @@ variable "arch" {
   }
 }
 
+variable "dry_run" {
+  type    = bool
+  default = false
+}
+
 # Lookup the base AMI we want:
 # Amazon Linux 2023 AMI <rev> <arch> HVM kernel-6.1
 # https://github.com/aws/amazon-ecs-ami/blob/main/al2023.pkr.hcl
 data "amazon-ami" "al2023" {
-    filters = {
-        virtualization-type = "hvm"
-        name = "al2023-ami-2023.6.20250128.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
-        root-device-type = "ebs"
-    }
-    owners = ["137112412989"] # Amazon
-    region = "${var.region}"
-    most_recent = true
+  filters = {
+    virtualization-type = "hvm"
+    name                = "al2023-ami-2023.6.20250128.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
+    root-device-type    = "ebs"
+  }
+  owners      = ["137112412989"] # Amazon
+  region      = "${var.region}"
+  most_recent = true
 }
 
 locals {
-    source_ami = data.amazon-ami.al2023.id
+  source_ami = data.amazon-ami.al2023.id
 
-    # System dependencies required for Aspect Workflows or for build & test
-    install_packages = [
-        # Dependencies of Aspect Workflows
-        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locate
-        "fuse",  # required for the Workflows high-performance remote cache configuration
-        "git",  # required so we can fetch the source code to be tested, obviously!
-        "libicu",  # libicu is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
-        "mdadm",  # required for mounting multiple nvme drives with raid 0
-        "rsyslog",  # reqired for system logging
-        # Optional but recommended dependencies
-        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
-        # Additional deps on top of minimal
-        "gcc-c++",
-        "gcc",
-    ]
+  install_packages = [
+    # Dependencies of Aspect Workflows
+    "amazon-cloudwatch-agent", # install cloudwatch-agent so that bootstrap logs are easier to locate
+    "fuse",                    # required for the Workflows high-performance remote cache configuration
+    "git",                     # required so we can fetch the source code to be tested, obviously!
+    "libicu",                  # libicu is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
+    "mdadm",                   # required when mounting multiple nvme drives with raid 0
+    "rsyslog",                 # reqired for system logging
+    # Recommended dependencies
+    "git-lfs", # support git repositories with LFS
+    "patch",   # patch may be used by some rulesets and package managers during dependency fetching
+    # Additional deps on top of minimal
+    "gcc-c++",
+    "gcc",
+  ]
 
-    # We'll need to tell systemctl to enable these when the image boots next.
-    enable_services = [
-        "amazon-cloudwatch-agent",
-    ]
+  enable_services = [
+    "amazon-cloudwatch-agent",
+  ]
 
-    instance_types = {
-      amd64 = "t3a.small"
-      arm64 = "c7g.medium"
-    }
+  instance_types = {
+    amd64 = "t3a.small"
+    arm64 = "c7g.medium"
+  }
 }
 
 source "amazon-ebs" "runner" {
@@ -106,12 +110,15 @@ build {
   sources = ["source.amazon-ebs.runner"]
 
   provisioner "shell" {
-      inline = [
-          # Install dependencies
-          format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
+    inline = [
+      # Install yum dependencies
+      format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
 
-          # Enable required services
-          format("sudo systemctl enable %s", join(" ", local.enable_services)),
-      ]
+      # Enable required services
+      format("sudo systemctl enable %s", join(" ", local.enable_services)),
+
+      # Exit with 325 if this is a dry run
+      format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
+    ]
   }
 }

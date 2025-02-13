@@ -84,6 +84,21 @@ continue_or_exit() {
 }
 
 function main() {
+  dry_run=false
+  new_args=()
+  for arg in "$@"; do
+    if [[ "$arg" == "--dry_run" ]]; then
+      dry_run=true
+    else
+      new_args+=("$arg")
+    fi
+  done
+  if [[ ${new_args[@]+"!"} == "!" ]]; then
+    set -- "${new_args[@]}"
+  else
+    set --
+  fi
+
   images=()
   if [[ -z "${1:-}" ]]; then
     images=("${all_images[@]}")
@@ -97,7 +112,16 @@ function main() {
     done
   fi
 
-  echo -e "\nThe following images will be built at version ${version}:"
+  if [[ ${images[@]+"!"} != "!" ]]; then
+    echo "No matching images!"
+    exit 1
+  fi
+
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "\nThe following images will be built at version ${version} (DRY RUN):"
+  else
+    echo -e "\nThe following images will be built at version ${version}:"
+  fi
   for i in "${images[@]}"; do
     echo -e "  - ${i}"
   done
@@ -113,11 +137,11 @@ function main() {
     variant="${file%.pkr.hcl}"
     if [ "${cloud}" == "aws" ]; then
       for arch in "${architectures[@]}"; do
-        build_aws "${distro}" "${variant}" "${arch}"
+        build_aws "${distro}" "${variant}" "${arch}" "${dry_run}"
       done
     elif [ "${cloud}" == "gcp" ]; then
       for arch in ${architectures[@]}; do
-        build_gcp "${distro}" "${variant}" "${arch}"
+        build_gcp "${distro}" "${variant}" "${arch}" "${dry_run}"
       done
     else
       echo "ERROR: unrecognized cloud '${cloud}'"
@@ -130,6 +154,7 @@ function build_aws() {
   local distro="$1"
   local variant="$2"
   local arch="$3"
+  local dry_run="$4"
 
   local packer_file="aws/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
@@ -138,7 +163,11 @@ function build_aws() {
   local build_region="${aws_regions[0]}"
   local copy_regions=("${aws_regions[@]:1}")
 
-  echo -e "\n\n\n\n=================================================="
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "\n\n\n\n======== ${name} (DRY RUN) ========"
+  else
+    echo -e "\n\n\n\n======== ${name} ========"
+  fi
 
   if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch available for debian-11 yet.
@@ -160,11 +189,15 @@ function build_aws() {
 
   # build the AMI
   echo "Building ${name}"
-  date
   set -x
-  AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
   set +x
   date
+
+  # if this was a dry run then we're done here
+  if [[ "$dry_run" == "true" ]]; then
+    return
+  fi
 
   # determine the ID of the new AMI
   describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}")
@@ -233,12 +266,17 @@ function build_gcp() {
   local distro="$1"
   local variant="$2"
   local arch="$3"
+  local dry_run="$4"
 
   local packer_file="gcp/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
   local name="${family}-${arch}-${version}"
 
-  echo -e "\n\n\n\n=================================================="
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "\n\n\n\n======== ${name} (DRY RUN)"
+  else
+    echo -e "\n\n\n\n======== ${name}"
+  fi
 
   if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
     # No arm64 arch base image available for debian-11 on GCP.
@@ -256,9 +294,14 @@ function build_gcp() {
   echo "Building ${name}"
   date
   set -x
-  packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" "$packer_file"
+  packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
   set +x
   date
+
+  # if this was a dry run then we're done here
+  if [[ "$dry_run" == "true" ]]; then
+    return
+  fi
 
   # set newly built image to public
   gcloud config set project "${gcp_project}"
