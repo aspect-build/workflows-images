@@ -16,28 +16,28 @@ variable "region" {
 }
 
 variable "family" {
-  type = string
+  type    = string
   default = "aspect-workflows-al2-gcc"
 }
 
 variable "vpc_id" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "subnet_id" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "encrypt_boot" {
-  type = bool
+  type    = bool
   default = false
 }
 
 variable "arch" {
-  type = string
-  default = "amd64"
+  type        = string
+  default     = "amd64"
   description = "Target architecture"
 
   validation {
@@ -46,45 +46,48 @@ variable "arch" {
   }
 }
 
+variable "dry_run" {
+  type    = bool
+  default = false
+}
+
 # Lookup the base AMI we want:
 # Amazon Linux 2 Kernel 5.10 AMI <rev> <arch> HVM gp2
 # https://github.com/aws/amazon-ecs-ami/blob/main/al2kernel5dot10.pkr.hcl
 data "amazon-ami" "al2" {
-    filters = {
-        virtualization-type = "hvm"
-        name = "amzn2-ami-kernel-5.10-hvm-2.0.20250123.4-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
-        root-device-type = "ebs"
-    }
-    owners = ["137112412989"] # Amazon
-    region = "${var.region}"
-    most_recent = true
+  filters = {
+    virtualization-type = "hvm"
+    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250123.4-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+    root-device-type    = "ebs"
+  }
+  owners      = ["137112412989"] # Amazon
+  region      = "${var.region}"
+  most_recent = true
 }
 
 locals {
-    source_ami = data.amazon-ami.al2.id
+  source_ami = data.amazon-ami.al2.id
 
-    # System dependencies required for Aspect Workflows or for build & test
-    install_packages = [
-        # Dependencies of Aspect Workflows
-        "amazon-cloudwatch-agent",  # install cloudwatch-agent so that bootstrap logs are easier to locate
-        "fuse",  # required for the Workflows high-performance remote cache configuration
-        "git",  # required so we can fetch the source code to be tested, obviously!
-        # Optional but recommended dependencies
-        "patch",  # patch may be used by some rulesets and package managers during dependency fetching
-        # Additional deps on top of minimal
-        "gcc-c++",
-        "gcc",
-    ]
+  install_packages = [
+    # Dependencies of Aspect Workflows
+    "amazon-cloudwatch-agent", # install cloudwatch-agent so that bootstrap logs are easier to locate
+    "fuse",                    # required for the Workflows high-performance remote cache configuration
+    "git",                     # required so we can fetch the source code to be tested, obviously!
+    # Recommended dependencies
+    "patch", # patch may be used by some rulesets and package managers during dependency fetching
+    # Additional deps on top of minimal
+    "gcc-c++",
+    "gcc",
+  ]
 
-    # We'll need to tell systemctl to enable these when the image boots next.
-    enable_services = [
-        "amazon-cloudwatch-agent",
-    ]
+  enable_services = [
+    "amazon-cloudwatch-agent",
+  ]
 
-    instance_types = {
-      amd64 = "t3a.small"
-      arm64 = "c7g.medium"
-    }
+  instance_types = {
+    amd64 = "t3a.small"
+    arm64 = "c7g.medium"
+  }
 }
 
 source "amazon-ebs" "runner" {
@@ -103,12 +106,20 @@ build {
   sources = ["source.amazon-ebs.runner"]
 
   provisioner "shell" {
-      inline = [
-          # Install dependencies
-          format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
+    inline = [
+      # Install yum dependencies
+      format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
 
-          # Enable required services
-          format("sudo systemctl enable %s", join(" ", local.enable_services)),
-      ]
+      # Install git-lfs on AL2 (https://stackoverflow.com/a/71466001)
+      "sudo amazon-linux-extras install epel -y",
+      "sudo yum-config-manager --enable epel",
+      "sudo yum install --assumeyes git-lfs",
+
+      # Enable required services
+      format("sudo systemctl enable %s", join(" ", local.enable_services)),
+
+      # Exit with 325 if this is a dry run
+      format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
+    ]
   }
 }
