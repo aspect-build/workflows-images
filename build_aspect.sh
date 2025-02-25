@@ -67,6 +67,8 @@ all_images=(
     gcp/debian-12/gcc.pkr.hcl
     gcp/debian-12/kitchen-sink.pkr.hcl
     gcp/debian-12/minimal.pkr.hcl
+    # GCP rhel 8
+    gcp/rhel-8/minimal.pkr.hcl
     # GCP ubuntu 2404
     gcp/ubuntu-2404/docker.pkr.hcl
     gcp/ubuntu-2404/gcc.pkr.hcl
