@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250111"
+    name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250218.1"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -74,6 +74,7 @@ locals {
     # Dependencies of Aspect Workflows
     "fuse", # required for the Workflows high-performance remote cache configuration
     # Recommended dependencies
+    # "git-lfs", # installed with curl below
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal

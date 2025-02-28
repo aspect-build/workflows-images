@@ -41,15 +41,17 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20250123"
+  source_image = "debian-11-bullseye-v20250212"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
     # Dependencies of Aspect Workflows
     "fuse",                  # required for the Workflows high-performance remote cache configuration
     "git",                   # required so we can fetch the source code to be tested, obviously!
+    "mdadm",                 # required for mounting multiple nvme drives with raid 0
     "google-osconfig-agent", # Google operational monitoring tools used to collect and alarm on critical telemetry
     "rsync",                 # reqired for bootstrap
+    "rsyslog",               # reqired for system logging
     # Recommended dependencies
     "git-lfs", # support git repositories with LFS
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
@@ -60,8 +62,22 @@ locals {
     "docker.io",
     "g++",
     "jq",
+    "libasound2",
+    "libatk-bridge2.0-0",
+    "libatk1.0-0",
+    "libcups2",
+    "libgbm-dev",
+    "libgtk-3-0",
+    "libgtk2.0-0",
+    "libnotify-dev",
+    "libnss3",
+    "libstdc++-10-dev",
+    "libxss1",
+    "libxtst6",
     "libzstd1",
     "make",
+    "xauth",
+    "xvfb",
     "yq",
   ]
 

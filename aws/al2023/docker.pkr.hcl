@@ -57,7 +57,7 @@ variable "dry_run" {
 data "amazon-ami" "al2023" {
   filters = {
     virtualization-type = "hvm"
-    name                = "al2023-ami-2023.6.20250128.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
+    name                = "al2023-ami-2023.6.20250218.2-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon
@@ -79,6 +79,7 @@ locals {
     # Recommended dependencies
     "git-lfs", # support git repositories with LFS
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
+    "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "docker",
   ]

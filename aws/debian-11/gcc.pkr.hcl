@@ -85,6 +85,7 @@ locals {
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "g++",
+    "libstdc++-10-dev",
   ]
 
   enable_services = [

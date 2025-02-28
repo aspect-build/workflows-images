@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250111"
+    name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250218.1"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -72,8 +72,14 @@ locals {
 
   install_packages = [
     # Dependencies of Aspect Workflows
-    "fuse", # required for the Workflows high-performance remote cache configuration
+    "amazon-cloudwatch-agent", # install cloudwatch-agent for logging
+    "fuse",                    # required for the Workflows high-performance remote cache configuration
+    "git",                     # required so we can fetch the source code to be tested, obviously!
+    "mdadm",                   # required for mounting multiple nvme drives with raid 0
+    "rsync",                   # required for bootstrap
+    "rsyslog",                 # reqired for system logging
     # Recommended dependencies
+    # "git-lfs", # installed with curl below
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
@@ -82,8 +88,23 @@ locals {
     "docker.io",
     "g++",
     "jq",
+    "libasound2",
+    "libatk-bridge2.0-0",
+    "libatk1.0-0",
+    "libcups2",
+    "libgbm-dev",
+    "libgtk-3-0",
+    "libgtk2.0-0",
+    "libnotify-dev",
+    "libnss3",
+    "libstdc++-10-dev",
+    "libxss1",
+    "libxtst6",
     "libzstd1",
     "make",
+    "xauth",
+    "xvfb",
+    "yq",
   ]
 
   enable_services = [
@@ -127,6 +148,9 @@ build {
         for url in local.install_debs : basename(url)
       ])),
 
+      # Required for yq on Ubuntu 20.04 (https://mikefarah.gitbook.io/yq/v3.x#on-ubuntu-16.04-or-higher-from-debian-package)
+      "sudo add-apt-repository ppa:rmescandon/yq",
+
       # Install apt dependencies
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
@@ -134,11 +158,6 @@ build {
       # Install git-lfs on Ubuntu 20.04 (https://github.com/git-lfs/git-lfs/issues/4107#issuecomment-624026217)
       "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash",
       "sudo apt update",
-
-      # Install yq on Ubuntu 20.04 (https://mikefarah.gitbook.io/yq/v3.x#on-ubuntu-16.04-or-higher-from-debian-package)
-      "sudo add-apt-repository ppa:rmescandon/yq",
-      "sudo apt update",
-      "sudo apt install --assume-yes yq",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),

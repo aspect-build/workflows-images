@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "debian" {
   filters = {
     virtualization-type = "hvm"
-    name                = "debian-12-${var.arch}-20250115-1993"
+    name                = "debian-12-${var.arch}-20250210-2019"
     root-device-type    = "ebs"
   }
   owners      = ["136693071363"] # Amazon
@@ -87,6 +87,7 @@ locals {
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "g++",
+    "libstdc++-11-dev",
   ]
 
   enable_services = [

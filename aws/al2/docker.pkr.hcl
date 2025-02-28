@@ -57,7 +57,7 @@ variable "dry_run" {
 data "amazon-ami" "al2" {
   filters = {
     virtualization-type = "hvm"
-    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250123.4-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250220.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon
@@ -74,7 +74,9 @@ locals {
     "fuse",                    # required for the Workflows high-performance remote cache configuration
     "git",                     # required so we can fetch the source code to be tested, obviously!
     # Recommended dependencies
-    "patch", # patch may be used by some rulesets and package managers during dependency fetching
+    "git-lfs", # support git repositories with LFS
+    "patch",   # patch may be used by some rulesets and package managers during dependency fetching
+    "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "docker",
   ]
@@ -107,13 +109,12 @@ build {
 
   provisioner "shell" {
     inline = [
-      # Install yum dependencies
-      format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
-
-      # Install git-lfs on AL2 (https://stackoverflow.com/a/71466001)
+      # Required for git-lfs on AL2 (https://stackoverflow.com/a/71466001)
       "sudo amazon-linux-extras install epel -y",
       "sudo yum-config-manager --enable epel",
-      "sudo yum install --assumeyes git-lfs",
+
+      # Install yum dependencies
+      format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),

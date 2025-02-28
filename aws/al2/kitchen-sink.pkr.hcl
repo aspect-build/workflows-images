@@ -57,7 +57,7 @@ variable "dry_run" {
 data "amazon-ami" "al2" {
   filters = {
     virtualization-type = "hvm"
-    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250123.4-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250220.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon
@@ -70,20 +70,39 @@ locals {
 
   install_packages = [
     # Dependencies of Aspect Workflows
-    "amazon-cloudwatch-agent", # install cloudwatch-agent so that bootstrap logs are easier to locate
+    "amazon-cloudwatch-agent", # install cloudwatch-agent for logging
     "fuse",                    # required for the Workflows high-performance remote cache configuration
     "git",                     # required so we can fetch the source code to be tested, obviously!
+    "mdadm",                   # required for mounting multiple nvme drives with raid 0
+    "rsync",                   # required for bootstrap
+    "rsyslog",                 # reqired for system logging
     # Recommended dependencies
-    "patch", # patch may be used by some rulesets and package managers during dependency fetching
+    "git-lfs", # support git repositories with LFS
+    "patch",   # patch may be used by some rulesets and package managers during dependency fetching
+    "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
+    "alsa-lib",
+    "atk",
     "clang",
     "cmake",
+    "cups-libs",
     "docker",
     "gcc-c++",
     "gcc",
+    "gtk2",
+    "gtk3",
     "jq",
+    "libnotify-devel",
+    "libstdc++-devel",
+    "libXScrnSaver",
+    "libXtst",
     "libzstd",
     "make",
+    "mesa-libgbm-devel" ,
+    "nss",
+    "xauth",
+    "xorg-x11-server-Xvfb",
+    # "yq", # installed with curl below
   ]
 
   enable_services = [
@@ -114,13 +133,17 @@ build {
 
   provisioner "shell" {
     inline = [
+      # Required for git-lfs & yq on AL2 (https://stackoverflow.com/a/71466001)
+      "sudo amazon-linux-extras install epel -y",
+      "sudo yum-config-manager --enable epel",
+
       # Install yum dependencies
       format("sudo yum --setopt=skip_missing_names_on_install=False --assumeyes install %s", join(" ", local.install_packages)),
 
-      # Install git-lfs & yq on AL2 (https://stackoverflow.com/a/71466001)
-      "sudo amazon-linux-extras install epel -y",
-      "sudo yum-config-manager --enable epel",
-      "sudo yum install --assumeyes git-lfs yq",
+      # Install yq
+      "sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${var.arch} -o /usr/bin/yq",
+      "sudo chmod +x /usr/bin/yq",
+      "yq --version",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),

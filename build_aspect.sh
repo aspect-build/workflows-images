@@ -87,7 +87,7 @@ function main() {
   dry_run=false
   new_args=()
   for arg in "$@"; do
-    if [[ "$arg" == "--dry_run" ]]; then
+    if [[ "$arg" == "--dry-run" ]]; then
       dry_run=true
     else
       new_args+=("$arg")

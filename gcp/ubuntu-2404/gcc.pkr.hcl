@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "ubuntu-2404-noble-${var.arch}-v20250130"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20250228"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -54,6 +54,7 @@ locals {
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "g++",
+    "libstdc++-11-dev",
   ]
 
   machine_types = {

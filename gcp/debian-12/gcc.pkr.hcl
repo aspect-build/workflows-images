@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20250113"
+  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20250212"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -56,6 +56,7 @@ locals {
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "g++",
+    "libstdc++-11-dev",
   ]
 
   machine_types = {
