@@ -98,7 +98,8 @@ locals {
     "libXtst",
     "libzstd",
     "make",
-    "mesa-libgbm-devel" ,
+    "mesa-libgbm-devel",
+    # "moreutils", # TODO: requires manual install on al2023
     "nss",
     "xauth",
     "xorg-x11-server-Xvfb",

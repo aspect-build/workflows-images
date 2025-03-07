@@ -102,6 +102,7 @@ locals {
     "libxtst6",
     "libzstd1",
     "make",
+    "moreutils",
     "xauth",
     "xvfb",
     "yq",

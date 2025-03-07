@@ -59,7 +59,11 @@ locals {
     # Additional deps on top of minimal
     "clang",
     "cmake",
-    "docker.io",
+    "containerd.io",
+    "docker-buildx-plugin",
+    "docker-ce-cli",
+    "docker-ce",
+    "docker-compose-plugin",
     "g++",
     "jq",
     "libasound2t64",
@@ -76,6 +80,7 @@ locals {
     "libxtst6",
     "libzstd1",
     "make",
+    "moreutils",
     "xauth",
     "xvfb",
     "yq",
@@ -119,6 +124,10 @@ build {
       # causing a race condition to lock  /var/lib/apt/lists/lock. Kill
       # any ongoing apt processes to release the lock.
       "sudo killall apt apt-get || true",
+
+      # Add docker repository
+      "sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
 
       # Install apt dependencies
       "sudo apt-get update",

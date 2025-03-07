@@ -99,6 +99,7 @@ locals {
     "libzstd",
     "make",
     "mesa-libgbm-devel" ,
+    "moreutils",
     "nss",
     "xauth",
     "xorg-x11-server-Xvfb",
