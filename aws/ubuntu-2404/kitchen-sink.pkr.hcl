@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250228"
+    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250610"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -65,11 +65,6 @@ data "amazon-ami" "ubuntu" {
 }
 
 locals {
-  install_debs = [
-    # Install cloudwatch-agent so that bootstrap logs are easier to locale
-    "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb",
-  ]
-
   install_packages = [
     # Dependencies of Aspect Workflows
     "amazon-cloudwatch-agent", # install cloudwatch-agent for logging
@@ -86,10 +81,12 @@ locals {
     "clang",
     "cmake",
     "containerd.io",
+    "chromium-browser",
     "docker-buildx-plugin",
     "docker-ce-cli",
     "docker-ce",
     "docker-compose-plugin",
+    "fonts-liberation",
     "g++",
     "jq",
     "libasound2t64",
@@ -108,6 +105,7 @@ locals {
     "make",
     "moreutils",
     "xauth",
+    "xdg-utils",
     "xvfb",
     "yq",
   ]
@@ -145,13 +143,9 @@ build {
 
   provisioner "shell" {
     inline = concat([
-      # Fetch debian dependencies
-      for url in local.install_debs : format("sudo curl %s -O", url)
-      ], [
-      # Install debian dependencies
-      format("sudo dpkg --install --skip-same-version %s", join(" ", [
-        for url in local.install_debs : basename(url)
-      ])),
+      # Install amazon cloud watch agent
+      "sudo curl https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb -O",
+      "sudo dpkg --install --skip-same-version amazon-cloudwatch-agent.deb",
 
       # Add docker repository
       "sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
