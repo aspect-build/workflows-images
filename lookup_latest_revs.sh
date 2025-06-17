@@ -18,9 +18,9 @@ aws_images=(
   # Debian 12
   debian-12-amd64-*
   debian-12-arm64-*
-  # Ubuntu 20.04
-  ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*
-  ubuntu/images/hvm-ssd/ubuntu-focal-20.04-arm64-server-*
+  # Ubuntu 22.04
+  ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*
+  ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-*
   # Ubuntu 24.04
   ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-*
   ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-*

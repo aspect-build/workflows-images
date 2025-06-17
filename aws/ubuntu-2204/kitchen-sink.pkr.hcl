@@ -17,7 +17,7 @@ variable "region" {
 
 variable "family" {
   type    = string
-  default = "aspect-workflows-ubuntu-2004-minimal"
+  default = "aspect-workflows-ubuntu-2204-kitchen-sink"
 }
 
 variable "vpc_id" {
@@ -52,11 +52,11 @@ variable "dry_run" {
 }
 
 # Lookup the base AMI we want
-# Canonical, Ubuntu, 20.04 LTS, <arch> focal image build on <rev>
+# Canonical, Ubuntu, 22.04 LTS, <arch> jammy image build on <rev>
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-${var.arch}-server-20250603"
+    name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-${var.arch}-server-20250516"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -65,22 +65,49 @@ data "amazon-ami" "ubuntu" {
 }
 
 locals {
-  install_debs = [
-    # Install cloudwatch-agent so that bootstrap logs are easier to locale
-    "https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb",
-  ]
-
   install_packages = [
     # Dependencies of Aspect Workflows
-    "fuse", # required for the Workflows high-performance remote cache configuration
+    "amazon-cloudwatch-agent", # install cloudwatch-agent for logging
+    "fuse",                    # required for the Workflows high-performance remote cache configuration
+    "git",                     # required so we can fetch the source code to be tested, obviously!
+    "mdadm",                   # required for mounting multiple nvme drives with raid 0
+    "rsync",                   # required for bootstrap
+    "rsyslog",                 # reqired for system logging
     # Recommended dependencies
-    # "git-lfs", # installed with curl below
+    "git-lfs", # support git repositories with LFS
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
+    # Additional deps on top of minimal
+    "clang",
+    "cmake",
+    "docker.io",
+    "fonts-liberation",
+    "g++",
+    "jq",
+    "libasound2",
+    "libatk-bridge2.0-0",
+    "libatk1.0-0",
+    "libcups2",
+    "libgbm-dev",
+    "libgtk-3-0",
+    "libgtk2.0-0",
+    "libnotify-dev",
+    "libnss3",
+    "libstdc++-11-dev",
+    "libxss1",
+    "libxtst6",
+    "libzstd1",
+    "make",
+    "moreutils",
+    "xauth",
+    "xdg-utils",
+    "xvfb",
+    "yq",
   ]
 
   enable_services = [
     "amazon-cloudwatch-agent",
+    "docker.service",
   ]
 
   instance_types = {
@@ -111,21 +138,16 @@ build {
 
   provisioner "shell" {
     inline = concat([
-      # Fetch debian dependencies
-      for url in local.install_debs : format("sudo curl %s -O", url)
-      ], [
-      # Install debian dependencies
-      format("sudo dpkg --install --skip-same-version %s", join(" ", [
-        for url in local.install_debs : basename(url)
-      ])),
+      # Install amazon cloud watch agent
+      "sudo curl https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb -O",
+      "sudo dpkg --install --skip-same-version amazon-cloudwatch-agent.deb",
+
+      # Required for yq on Ubuntu 22.04 (https://mikefarah.gitbook.io/yq/v3.x#on-ubuntu-16.04-or-higher-from-debian-package)
+      "sudo add-apt-repository ppa:rmescandon/yq",
 
       # Install apt dependencies
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
-
-      # Install git-lfs on Ubuntu 20.04 (https://github.com/git-lfs/git-lfs/issues/4107#issuecomment-624026217)
-      "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash",
-      "sudo apt update",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
