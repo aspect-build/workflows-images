@@ -81,7 +81,7 @@ locals {
     "clang",
     "cmake",
     "containerd.io",
-    "chromium-browser",
+    "chromium",
     "docker-buildx-plugin",
     "docker-ce-cli",
     "docker-ce",
@@ -152,6 +152,7 @@ build {
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
 
       # Install apt dependencies
+      "sudo add-apt-repository ppa:xtradeb/apps -y", # repository for chromium package (the Ubuntu chromium-browser packages installs chromium-browser as a snap package which breaks tests on CI)
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
