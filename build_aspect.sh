@@ -249,7 +249,7 @@ function build_aws() {
       if [ "${state}" == "available" ]; then
         # set image to public once it is available; this can be safely called multiple times
         aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${copy_region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
-         ((available++))
+        ((++available))
       fi
     done
     date
