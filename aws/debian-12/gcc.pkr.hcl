@@ -41,8 +41,8 @@ variable "arch" {
   description = "Target architecture"
 
   validation {
-    condition     = var.arch == "amd64"
-    error_message = "Only an arch of amd64 is currently supported on this distro."
+    condition     = var.arch == "amd64" || var.arch == "arm64"
+    error_message = "Expected arch to be either amd64 or arm64."
   }
 }
 
@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "debian" {
   filters = {
     virtualization-type = "hvm"
-    name                = "debian-12-${var.arch}-20250530-2128"
+    name                = "debian-12-${var.arch == "arm64" ? "arm64" : "amd64"}-20250530-2128"
     root-device-type    = "ebs"
   }
   owners      = ["136693071363"] # Amazon

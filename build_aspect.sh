@@ -173,11 +173,6 @@ function build_aws() {
     # See https://github.com/aspect-build/silo/issues/4001 for more context.
     echo "Skipping ${name} (currently no arm64 support for ${distro})"
     return
-  elif [ "${distro}" == "debian-12" ] && [ "${arch}" == "arm64" ]; then
-    # No arm64 arch available for debian-12 yet.
-    # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping ${name} (currently no arm64 support for ${distro})"
-    return
   fi
 
   # init packer
