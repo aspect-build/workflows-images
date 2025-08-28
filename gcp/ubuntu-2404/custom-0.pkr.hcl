@@ -1,8 +1,8 @@
 packer {
   required_plugins {
-    amazon = {
-      version = ">= 1.1.5"
-      source  = "github.com/hashicorp/amazon"
+    googlecompute = {
+      version = ">= 1.0.0"
+      source  = "github.com/hashicorp/googlecompute"
     }
   }
 }
@@ -11,28 +11,17 @@ variable "version" {
   type = string
 }
 
-variable "region" {
+variable "project" {
+  type = string
+}
+
+variable "zone" {
   type = string
 }
 
 variable "family" {
   type    = string
   default = "aspect-workflows-ubuntu-2404-custom-0"
-}
-
-variable "vpc_id" {
-  type    = string
-  default = null
-}
-
-variable "subnet_id" {
-  type    = string
-  default = null
-}
-
-variable "encrypt_boot" {
-  type    = bool
-  default = false
 }
 
 variable "arch" {
@@ -51,28 +40,18 @@ variable "dry_run" {
   default = false
 }
 
-# Lookup the base AMI we want
-# Canonical, Ubuntu, 24.04 LTS, <arch> focal image build on <rev>
-data "amazon-ami" "ubuntu" {
-  filters = {
-    virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250610"
-    root-device-type    = "ebs"
-  }
-  owners      = ["099720109477"] # amazon
-  region      = "${var.region}"
-  most_recent = true
-}
-
 locals {
+  source_image = "ubuntu-2404-noble-${var.arch}-v20250606"
+
+  # System dependencies required for Aspect Workflows
   install_packages = [
     # Dependencies of Aspect Workflows
-    "amazon-cloudwatch-agent", # install cloudwatch-agent for logging
-    "fuse",                    # required for the Workflows high-performance remote cache configuration
-    "git",                     # required so we can fetch the source code to be tested, obviously!
-    "mdadm",                   # required for mounting multiple nvme drives with raid 0
-    "rsync",                   # required for bootstrap
-    "rsyslog",                 # reqired for system logging
+    "fuse",                  # required for the Workflows high-performance remote cache configuration
+    "git",                   # required so we can fetch the source code to be tested, obviously!
+    "mdadm",                 # required for mounting multiple nvme drives with raid 0
+    "google-osconfig-agent", # Google operational monitoring tools used to collect and alarm on critical telemetry
+    "rsync",                 # reqired for bootstrap
+    "rsyslog",               # reqired for system logging
     # Recommended dependencies
     "git-lfs", # support git repositories with LFS
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
@@ -81,12 +60,10 @@ locals {
     "clang",
     "cmake",
     "containerd.io",
-    "chromium",
     "docker-buildx-plugin",
     "docker-ce-cli",
     "docker-ce",
     "docker-compose-plugin",
-    "fonts-liberation",
     "g++",
     "gh=2.78.0",
     "jq",
@@ -108,47 +85,48 @@ locals {
     "openjdk-21-jdk",
     "python3.13",
     "xauth",
-    "xdg-utils",
     "xvfb",
     "yq",
   ]
 
+  # We'll need to tell systemctl to start these when the image boots next.
   enable_services = [
-    "amazon-cloudwatch-agent",
     "docker.service",
   ]
 
-  instance_types = {
-    amd64 = "t3a.small"
-    arm64 = "c7g.medium"
-  }
-
-  awscli_url = {
-    amd64 = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
-    arm64 = "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+  machine_types = {
+    amd64 = "e2-medium"
+    arm64 = "t2a-standard-1"
   }
 }
 
-source "amazon-ebs" "runner" {
-  ami_name                                  = "${var.family}-${var.arch}-${var.version}"
-  instance_type                             = "${local.instance_types[var.arch]}"
-  region                                    = "${var.region}"
-  vpc_id                                    = "${var.vpc_id}"
-  subnet_id                                 = "${var.subnet_id}"
-  ssh_username                              = "ubuntu"
-  source_ami                                = data.amazon-ami.ubuntu.id
-  temporary_security_group_source_public_ip = true
-  encrypt_boot                              = var.encrypt_boot
+source "googlecompute" "image" {
+  project_id   = "${var.project}"
+  image_family = "${var.family}-${var.arch}"
+  image_name   = "${var.family}-${var.arch}-${var.version}"
+  source_image = "${local.source_image}"
+  ssh_username = "packer"
+  machine_type = "${local.machine_types[var.arch]}"
+  zone         = "${var.zone}"
 }
 
 build {
-  sources = ["source.amazon-ebs.runner"]
+  sources = [
+    "source.googlecompute.image",
+  ]
 
   provisioner "shell" {
-    inline = concat([
-      # Install amazon cloud watch agent
-      "sudo curl https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb -O",
-      "sudo dpkg --install --skip-same-version amazon-cloudwatch-agent.deb",
+    inline = [
+      # Disable automated apt updates
+      "sudo systemctl disable apt-daily-upgrade.timer apt-daily.timer",
+
+      # Disable snap refreshes
+      "sudo snap refresh --hold=forever",
+
+      # apt-get update is often running by the time this script begins,
+      # causing a race condition to lock  /var/lib/apt/lists/lock. Kill
+      # any ongoing apt processes to release the lock.
+      "sudo killall apt apt-get || true",
 
       # Add docker repository
       "sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
@@ -161,21 +139,19 @@ build {
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null",
 
       # Install apt dependencies
-      "sudo add-apt-repository ppa:xtradeb/apps -y", # repository for chromium package (the Ubuntu chromium-browser packages installs chromium-browser as a snap package which breaks tests on CI)
       "sudo add-apt-repository ppa:deadsnakes/ppa -y",
-      "sudo apt update",
+      "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
+
+      # Install Google Cloud Ops Agent
+      "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
+      "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
 
-      # Install AWS CLI
-      "curl \"${local.awscli_url[var.arch]}\" -o \"awscliv2.zip\"",
-      "unzip awscliv2.zip",
-      "sudo ./aws/install",
-
       # Exit with 325 if this is a dry run
       format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
-    ])
+    ]
   }
 }

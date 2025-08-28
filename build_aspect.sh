@@ -52,7 +52,6 @@ all_images=(
     aws/ubuntu-2204/kitchen-sink.pkr.hcl
     aws/ubuntu-2204/minimal.pkr.hcl
     # AWS ubuntu 2404
-    aws/ubuntu-2404/custom-0.pkr.hcl
     aws/ubuntu-2404/docker.pkr.hcl
     aws/ubuntu-2404/gcc.pkr.hcl
     aws/ubuntu-2404/kitchen-sink.pkr.hcl
@@ -68,6 +67,7 @@ all_images=(
     gcp/debian-12/kitchen-sink.pkr.hcl
     gcp/debian-12/minimal.pkr.hcl
     # GCP ubuntu 2404
+    gcp/ubuntu-2404/custom-0.pkr.hcl
     gcp/ubuntu-2404/docker.pkr.hcl
     gcp/ubuntu-2404/gcc.pkr.hcl
     gcp/ubuntu-2404/kitchen-sink.pkr.hcl
