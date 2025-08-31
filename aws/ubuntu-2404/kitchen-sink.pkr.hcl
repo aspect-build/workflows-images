@@ -104,6 +104,7 @@ locals {
     "libzstd1",
     "make",
     "moreutils",
+    "nodejs",
     "xauth",
     "xdg-utils",
     "xvfb",
@@ -150,6 +151,9 @@ build {
       # Add docker repository
       "sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu noble stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+
+      # Add Node.js repository
+      "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
 
       # Install apt dependencies
       "sudo add-apt-repository ppa:xtradeb/apps -y", # repository for chromium package (the Ubuntu chromium-browser packages installs chromium-browser as a snap package which breaks tests on CI)
