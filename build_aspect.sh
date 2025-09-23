@@ -52,6 +52,7 @@ all_images=(
     aws/ubuntu-2204/kitchen-sink.pkr.hcl
     aws/ubuntu-2204/minimal.pkr.hcl
     # AWS ubuntu 2404
+    aws/ubuntu-2404/custom-0.pkr.hcl
     aws/ubuntu-2404/docker.pkr.hcl
     aws/ubuntu-2404/gcc.pkr.hcl
     aws/ubuntu-2404/kitchen-sink.pkr.hcl
