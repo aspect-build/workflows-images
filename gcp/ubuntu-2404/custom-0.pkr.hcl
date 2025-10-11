@@ -65,7 +65,7 @@ locals {
     "docker-ce",
     "docker-compose-plugin",
     "g++",
-    "gh=2.78.0",
+    "gh=2.81.0",
     "jq",
     "libasound2t64",
     "libatk-bridge2.0-0",
@@ -149,6 +149,12 @@ build {
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
+
+      # Disable Ubuntu 24.04 AppArmor mount operations restrictions so Bazel can use linux-sandbox
+      "echo 'kernel.apparmor_restrict_unprivileged_userns = 0' | sudo tee /etc/sysctl.d/99-disable-userns-restriction.conf",
+      "sudo chmod 0644 /etc/sysctl.d/99-disable-userns-restriction.conf",
+      "sudo chown root:root /etc/sysctl.d/99-disable-userns-restriction.conf",
+      "sudo sysctl --load=/etc/sysctl.d/99-disable-userns-restriction.conf",
 
       # Exit with 325 if this is a dry run
       format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
