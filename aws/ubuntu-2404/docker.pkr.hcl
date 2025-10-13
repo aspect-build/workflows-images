@@ -139,6 +139,11 @@ build {
       "sudo chown root:root /etc/sysctl.d/99-disable-userns-restriction.conf",
       "sudo sysctl --load=/etc/sysctl.d/99-disable-userns-restriction.conf",
 
+      # Disable unattended-upgrades by removing the package
+      "sudo apt purge -y unattended-upgrades",
+      # Disable needrestart by setting to list-only mode (or purge if preferred)
+      "sudo sed -i \"s/#\\$nrconf{restart} = 'i';/\\$nrconf{restart} = 'l';/\" /etc/needrestart/needrestart.conf",
+
       # Exit with 325 if this is a dry run
       format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
     ])
