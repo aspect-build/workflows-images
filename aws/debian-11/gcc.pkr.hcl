@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "debian" {
   filters = {
     virtualization-type = "hvm"
-    name                = "debian-11-${var.arch}-20250528-2126"
+    name                = "debian-11-${var.arch}-20251006-2257"
     root-device-type    = "ebs"
   }
   owners      = ["136693071363"] # Amazon

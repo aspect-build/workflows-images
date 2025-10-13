@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "debian" {
   filters = {
     virtualization-type = "hvm"
-    name                = "debian-11-${var.arch}-20250528-2126"
+    name                = "debian-11-${var.arch}-20251006-2257"
     root-device-type    = "ebs"
   }
   owners      = ["136693071363"] # Amazon
@@ -109,7 +109,6 @@ locals {
     "moreutils",
     "xauth",
     "xvfb",
-    "yq",
   ]
 
   enable_services = [
@@ -152,6 +151,11 @@ build {
       # Install apt dependencies
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
+
+      # Install yq
+      "sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${var.arch} -o /usr/bin/yq",
+      "sudo chmod +x /usr/bin/yq",
+      "yq --version",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),

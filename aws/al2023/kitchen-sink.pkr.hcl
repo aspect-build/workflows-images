@@ -57,7 +57,7 @@ variable "dry_run" {
 data "amazon-ami" "al2023" {
   filters = {
     virtualization-type = "hvm"
-    name                = "al2023-ami-2023.7.20250609.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
+    name                = "al2023-ami-2023.9.20250929.0-kernel-6.1-${var.arch == "amd64" ? "x86_64" : var.arch}",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon

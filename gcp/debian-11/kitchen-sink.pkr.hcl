@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20250610"
+  source_image = "debian-11-bullseye-v20250915"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -79,7 +79,6 @@ locals {
     "moreutils",
     "xauth",
     "xvfb",
-    "yq",
   ]
 
   # We'll need to tell systemctl to start these when the image boots next.
@@ -122,6 +121,11 @@ build {
       # Install Google Cloud Ops Agent
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
+
+      # Install yq
+      "sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${var.arch} -o /usr/bin/yq",
+      "sudo chmod +x /usr/bin/yq",
+      "yq --version",
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),

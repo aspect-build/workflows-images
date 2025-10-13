@@ -42,7 +42,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "debian-11-bullseye-v20250610"
+  source_image = "debian-11-bullseye-v20250915"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

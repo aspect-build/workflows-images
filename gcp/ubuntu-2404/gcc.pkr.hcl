@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "ubuntu-2404-noble-${var.arch}-v20250606"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20251001"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

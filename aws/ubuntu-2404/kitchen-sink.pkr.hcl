@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20250610"
+    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20251001"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon

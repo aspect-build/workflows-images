@@ -57,7 +57,7 @@ variable "dry_run" {
 data "amazon-ami" "al2" {
   filters = {
     virtualization-type = "hvm"
-    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250610.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20250929.2-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon
