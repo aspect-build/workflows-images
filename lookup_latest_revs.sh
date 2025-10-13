@@ -43,7 +43,7 @@ for name in "${aws_images[@]}"; do
   echo -e "\n\n================ AWS ================"
   echo "name: $name"
   aws ec2 describe-images \
-    --profile silo \
+    --profile awd-silo-prod_AspectEngineering \
     --region us-east-1 \
     --owners amazon \
     --filters "Name=name,Values=$name" \
