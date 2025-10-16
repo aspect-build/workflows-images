@@ -56,6 +56,7 @@ locals {
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
     "docker.io",
+    "docker-compose-plugin",
   ]
 
   # We'll need to tell systemctl to start these when the image boots next.

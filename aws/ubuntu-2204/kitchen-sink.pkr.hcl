@@ -81,6 +81,7 @@ locals {
     "clang",
     "cmake",
     "docker.io",
+    "docker-compose-plugin",
     "fonts-liberation",
     "g++",
     "jq",

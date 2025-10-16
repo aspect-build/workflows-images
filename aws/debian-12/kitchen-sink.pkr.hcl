@@ -90,6 +90,7 @@ locals {
     "clang",
     "cmake",
     "docker.io",
+    "docker-compose-plugin",
     "g++",
     "jq",
     "libasound2",
