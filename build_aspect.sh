@@ -46,6 +46,11 @@ all_images=(
     aws/debian-12/gcc.pkr.hcl
     aws/debian-12/kitchen-sink.pkr.hcl
     aws/debian-12/minimal.pkr.hcl
+    # AWS debian 13
+    aws/debian-13/docker.pkr.hcl
+    aws/debian-13/gcc.pkr.hcl
+    aws/debian-13/kitchen-sink.pkr.hcl
+    aws/debian-13/minimal.pkr.hcl
     # AWS ubuntu 2204
     aws/ubuntu-2204/docker.pkr.hcl
     aws/ubuntu-2204/gcc.pkr.hcl

@@ -18,6 +18,9 @@ aws_images=(
   # Debian 12
   debian-12-amd64-*
   debian-12-arm64-*
+  # Debian 13
+  debian-13-amd64-*
+  debian-13-arm64-*
   # Ubuntu 22.04
   ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*
   ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-*
