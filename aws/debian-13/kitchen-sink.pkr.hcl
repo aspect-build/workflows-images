@@ -89,8 +89,11 @@ locals {
     # Additional deps on top of minimal
     "clang",
     "cmake",
-    "docker.io",
-    "docker-compose",
+    "containerd.io",
+    "docker-buildx-plugin",
+    "docker-ce-cli",
+    "docker-ce",
+    "docker-compose-plugin",
     "g++",
     "jq",
     "libasound2t64",
@@ -103,6 +106,7 @@ locals {
     "libnotify-dev",
     "libnss3",
     "libstdc++-14-dev",
+    "libyaml-dev",
     "libxss1",
     "libxtst6",
     "libzstd1",
@@ -149,6 +153,13 @@ build {
       format("sudo dpkg --install --skip-same-version %s", join(" ", [
         for url in local.install_debs : basename(url)
       ])),
+
+      # Add Docker repository
+      "sudo apt-get install -y ca-certificates curl",
+      "sudo install -m 0755 -d /etc/apt/keyrings",
+      "sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc",
+      "sudo chmod a+r /etc/apt/keyrings/docker.asc",
+      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
 
       # Install apt dependencies
       "sudo apt update",

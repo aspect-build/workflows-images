@@ -56,7 +56,10 @@ locals {
     "patch",   # patch may be used by some rulesets and package managers during dependency fetching
     "zip",     # zip may be used by bazel if there are tests that produce undeclared test outputs which bazel zips; for more information about undeclared test outputs, see https://bazel.build/reference/test-encyclopedia
     # Additional deps on top of minimal
-    "docker.io",
+    "containerd.io",
+    "docker-buildx-plugin",
+    "docker-ce-cli",
+    "docker-ce",
     "docker-compose-plugin",
   ]
 
@@ -88,6 +91,14 @@ build {
 
   provisioner "shell" {
     inline = [
+      # Add Docker repository
+      "sudo apt-get update",
+      "sudo apt-get install -y ca-certificates curl",
+      "sudo install -m 0755 -d /etc/apt/keyrings",
+      "sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc",
+      "sudo chmod a+r /etc/apt/keyrings/docker.asc",
+      "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bullseye stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+
       # Install apt dependencies
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),

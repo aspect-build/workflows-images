@@ -78,6 +78,7 @@ locals {
     "libstdc++-11-dev",
     "libxss1",
     "libxtst6",
+    "libyaml-dev",
     "libzstd1",
     "make",
     "moreutils",
