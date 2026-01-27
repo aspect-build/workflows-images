@@ -95,6 +95,8 @@ function main() {
   for arg in "$@"; do
     if [[ "$arg" == "--dry-run" ]]; then
       dry_run=true
+    elif [[ "$arg" == --version=* ]]; then
+      version="${arg#--version=}"
     else
       new_args+=("$arg")
     fi
@@ -182,25 +184,31 @@ function build_aws() {
     return
   fi
 
-  # init packer
-  echo "Packer init for ${name}"
-  set -x
-  packer init "${packer_file}"
-  set +x
+  # Check if image already exists in build region
+  existing_ami=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}" --query 'Images[0].ImageId' --output text 2>/dev/null || true)
+  if [ -n "${existing_ami}" ] && [ "${existing_ami}" != "None" ]; then
+    echo "${name} already exists in ${build_region}"
+  else
+    # init packer
+    echo "Packer init for ${name}"
+    set -x
+    packer init "${packer_file}"
+    set +x
 
-  # build the AMI
-  echo "Building ${name}"
-  set -x
-  AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
-  set +x
-  date
+    # build the AMI
+    echo "Building ${name}"
+    set -x
+    AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
+    set +x
+    date
 
-  # if this was a dry run then we're done here
-  if [[ "$dry_run" == "true" ]]; then
-    return
+    # if this was a dry run then we're done here
+    if [[ "$dry_run" == "true" ]]; then
+      return
+    fi
   fi
 
-  # determine the ID of the new AMI
+  # determine the ID of the AMI in the build region
   describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}")
   amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
   if [ -z "${amis:-}" ]; then
@@ -212,54 +220,61 @@ function build_aws() {
     exit 1
   fi
   ami="${amis[0]}"
-  # set newly built image to public
-  aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${build_region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
 
-  # copy the new AMI to all copy regions
+  # copy the AMI to copy regions that don't already have it
   for copy_region in ${copy_regions[@]}; do
-    echo "Copying ${name} ("${ami}") to ${copy_region}"
-    aws ec2 copy-image --profile "${aws_profile}" --region "${copy_region}" --name "${name}" --source-region "${build_region}" --source-image-id "${ami}"
+    existing_copy=$(aws ec2 describe-images --profile "${aws_profile}" --region "${copy_region}" --filters "Name=name,Values=${name}" --query 'Images[0].ImageId' --output text 2>/dev/null || true)
+    if [ -n "${existing_copy}" ] && [ "${existing_copy}" != "None" ]; then
+      echo "${name} already exists in ${copy_region}"
+    else
+      echo "Copying ${name} ("${ami}") to ${copy_region}"
+      aws ec2 copy-image --profile "${aws_profile}" --region "${copy_region}" --name "${name}" --source-region "${build_region}" --source-image-id "${ami}"
+    fi
   done
   date
 
-  # wait until all image copies are available
-  echo "Waiting until all image copies are available..."
+  # wait until all images are available across all regions and ensure they are public
+  echo "Ensuring all images are available and public..."
   available=0
-  num_copy_regions="${#copy_regions[@]}"
-  until [ "${available}" -eq "${num_copy_regions}" ]
+  num_regions="${#aws_regions[@]}"
+  until [ "${available}" -eq "${num_regions}" ]
   do
-    sleep 10
     available=0
-    for copy_region in "${copy_regions[@]}"; do
-      describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${copy_region}" --filters "Name=name,Values=${name}")
+    for region in "${aws_regions[@]}"; do
+      describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${region}" --filters "Name=name,Values=${name}")
       states=($(echo "${describe_images}" | jq  .Images[0].State | jq . -r))
       amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
       if [ -z "${states:-}" ]; then
-        echo "ERROR: image ${name} not found in ${copy_region}"
+        echo "ERROR: image ${name} not found in ${region}"
         exit 1
       fi
       if [ -z "${amis:-}" ]; then
-        echo "ERROR: image ${name} not found in ${copy_region}"
+        echo "ERROR: image ${name} not found in ${region}"
         exit 1
       fi
       if [ "${#states[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 ${name} image in ${copy_region}"
+        echo "ERROR: expected 1 ${name} image in ${region}"
         exit 1
       fi
       if [ "${#amis[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 ${name} image in ${copy_region}"
+        echo "ERROR: expected 1 ${name} image in ${region}"
         exit 1
       fi
       state="${states[0]}"
       ami="${amis[0]}"
-      echo "${name} in ${copy_region} is ${state}"
       if [ "${state}" == "available" ]; then
         # set image to public once it is available; this can be safely called multiple times
-        aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${copy_region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
+        aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
+        echo "${name} in ${region} is available and public"
         ((++available))
+      else
+        echo "${name} in ${region} is ${state}"
       fi
     done
     date
+    if [ "${available}" -ne "${num_regions}" ]; then
+      sleep 10
+    fi
   done
 }
 
@@ -285,28 +300,39 @@ function build_gcp() {
     return
   fi
 
-  # init packer
-  echo "Packer init for ${name}"
-  set -x
-  packer init "${packer_file}"
-  set +x
+  # Check if image already exists
+  if gcloud compute images describe "${name}" --project="${gcp_project}" &>/dev/null; then
+    echo "${name} already exists in ${gcp_project}"
+  else
+    # init packer
+    echo "Packer init for ${name}"
+    set -x
+    packer init "${packer_file}"
+    set +x
 
-  # build the AMI
-  echo "Building ${name}"
-  date
-  set -x
-  packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
-  set +x
-  date
+    # build the image
+    echo "Building ${name}"
+    date
+    set -x
+    packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
+    set +x
+    date
 
-  # if this was a dry run then we're done here
-  if [[ "$dry_run" == "true" ]]; then
-    return
+    # if this was a dry run then we're done here
+    if [[ "$dry_run" == "true" ]]; then
+      return
+    fi
   fi
 
-  # set newly built image to public
-  gcloud config set project "${gcp_project}"
-  gcloud compute images add-iam-policy-binding "${name}" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
+  # ensure image is public
+  gcloud config set project "${gcp_project}" 2>/dev/null
+  existing_policy=$(gcloud compute images get-iam-policy "${name}" --format=json 2>/dev/null || echo '{}')
+  if echo "${existing_policy}" | jq -e '.bindings[]? | select(.role == "roles/compute.imageUser") | .members[]? | select(. == "allAuthenticatedUsers")' &>/dev/null; then
+    echo "${name} in ${gcp_project} is public"
+  else
+    gcloud compute images add-iam-policy-binding "${name}" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
+    echo "${name} in ${gcp_project} is now public"
+  fi
 }
 
 main "$@"

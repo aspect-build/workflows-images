@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "debian" {
   filters = {
     virtualization-type = "hvm"
-    name                = "debian-13-${var.arch}-20251117-2299"
+    name                = "debian-13-${var.arch}-20260112-2355"
     root-device-type    = "ebs"
   }
   owners      = ["136693071363"] # Amazon
@@ -78,6 +78,7 @@ locals {
     # Dependencies of Aspect Workflows
     "fuse",    # required for the Workflows high-performance remote cache configuration
     "git",     # required so we can fetch the source code to be tested, obviously!
+    "libicu76", # libicu is needed by GitHub Actions agent (https://github.com/actions/runner/issues/2511)
     "mdadm",   # required for mounting multiple nvme drives with raid 0
     "rsync",   # required for bootstrap
     "rsyslog", # reqired for system logging
