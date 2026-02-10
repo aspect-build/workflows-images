@@ -51,12 +51,13 @@ on:
         required: false
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Build selected images
+      - name: Build matrix
+        id: matrix
         run: |
           clouds=()
           if [[ "${{ inputs.aws }}" == "true" ]]; then clouds+=(aws); fi
@@ -69,8 +70,6 @@ jobs:
           if [[ "${{ inputs.ubuntu-2204 }}" == "true" ]]; then oses+=(ubuntu-2204); fi
           if [[ "${{ inputs.ubuntu-2404 }}" == "true" ]]; then oses+=(ubuntu-2404); fi
 
-          variant="${{ inputs.variant }}"
-
           if [[ ${#clouds[@]} -eq 0 ]]; then
             echo "::error::No cloud provider selected!"
             exit 1
@@ -80,23 +79,41 @@ jobs:
             exit 1
           fi
 
-          args=()
+          includes=()
           for cloud in "${clouds[@]}"; do
             for os in "${oses[@]}"; do
-              if [[ "$variant" == "all" ]]; then
-                args+=("${cloud}/${os}")
-              else
-                args+=("${cloud}/${os}/${variant}")
-              fi
+              includes+=("{\"cloud\":\"${cloud}\",\"os\":\"${os}\"}")
             done
           done
 
+          matrix="{\"include\":[$(IFS=,; echo "${includes[*]}")]}"
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+      fail-fast: false
+    name: "${{ matrix.cloud }}/${{ matrix.os }}"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          variant="${{ inputs.variant }}"
+          if [[ "$variant" == "all" ]]; then
+            arg="${{ matrix.cloud }}/${{ matrix.os }}"
+          else
+            arg="${{ matrix.cloud }}/${{ matrix.os }}/${variant}"
+          fi
+
+          flags=()
           if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-            args+=("--dry-run")
+            flags+=("--dry-run")
           fi
-
           if [[ -n "${{ inputs.version }}" ]]; then
-            args+=("--version=${{ inputs.version }}")
+            flags+=("--version=${{ inputs.version }}")
           fi
 
-          echo y | ./build_aspect.sh "${args[@]}"
+          echo y | ./build_aspect.sh "$arg" "${flags[@]}"
