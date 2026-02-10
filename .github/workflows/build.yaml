@@ -3,38 +3,44 @@ name: Build Images
 on:
   workflow_dispatch:
     inputs:
-      aws-debian-11-kitchen-sink:
-        description: "aws/debian-11/kitchen-sink"
+      aws:
+        description: "AWS"
         type: boolean
         default: false
-      aws-debian-12-kitchen-sink:
-        description: "aws/debian-12/kitchen-sink"
+      gcp:
+        description: "GCP"
         type: boolean
         default: false
-      aws-debian-13-kitchen-sink:
-        description: "aws/debian-13/kitchen-sink"
+      debian-11:
+        description: "Debian 11"
         type: boolean
         default: false
-      aws-ubuntu-2204-kitchen-sink:
-        description: "aws/ubuntu-2204/kitchen-sink"
+      debian-12:
+        description: "Debian 12"
         type: boolean
         default: false
-      aws-ubuntu-2404-kitchen-sink:
-        description: "aws/ubuntu-2404/kitchen-sink"
+      debian-13:
+        description: "Debian 13"
         type: boolean
         default: false
-      gcp-debian-11-kitchen-sink:
-        description: "gcp/debian-11/kitchen-sink"
+      ubuntu-2204:
+        description: "Ubuntu 22.04"
         type: boolean
         default: false
-      gcp-debian-12-kitchen-sink:
-        description: "gcp/debian-12/kitchen-sink"
+      ubuntu-2404:
+        description: "Ubuntu 24.04"
         type: boolean
         default: false
-      gcp-ubuntu-2404-kitchen-sink:
-        description: "gcp/ubuntu-2404/kitchen-sink"
-        type: boolean
-        default: false
+      variant:
+        description: "Image variant"
+        type: choice
+        default: "all"
+        options:
+          - all
+          - kitchen-sink
+          - docker
+          - gcc
+          - minimal
       dry-run:
         description: "Dry run (do not actually build)"
         type: boolean
@@ -52,32 +58,38 @@ jobs:
 
       - name: Build selected images
         run: |
-          args=()
+          clouds=()
+          if [[ "${{ inputs.aws }}" == "true" ]]; then clouds+=(aws); fi
+          if [[ "${{ inputs.gcp }}" == "true" ]]; then clouds+=(gcp); fi
 
-          if [[ "${{ inputs.aws-debian-11-kitchen-sink }}" == "true" ]]; then
-            args+=("aws/debian-11/kitchen-sink")
+          oses=()
+          if [[ "${{ inputs.debian-11 }}" == "true" ]]; then oses+=(debian-11); fi
+          if [[ "${{ inputs.debian-12 }}" == "true" ]]; then oses+=(debian-12); fi
+          if [[ "${{ inputs.debian-13 }}" == "true" ]]; then oses+=(debian-13); fi
+          if [[ "${{ inputs.ubuntu-2204 }}" == "true" ]]; then oses+=(ubuntu-2204); fi
+          if [[ "${{ inputs.ubuntu-2404 }}" == "true" ]]; then oses+=(ubuntu-2404); fi
+
+          variant="${{ inputs.variant }}"
+
+          if [[ ${#clouds[@]} -eq 0 ]]; then
+            echo "::error::No cloud provider selected!"
+            exit 1
           fi
-          if [[ "${{ inputs.aws-debian-12-kitchen-sink }}" == "true" ]]; then
-            args+=("aws/debian-12/kitchen-sink")
+          if [[ ${#oses[@]} -eq 0 ]]; then
+            echo "::error::No operating system selected!"
+            exit 1
           fi
-          if [[ "${{ inputs.aws-debian-13-kitchen-sink }}" == "true" ]]; then
-            args+=("aws/debian-13/kitchen-sink")
-          fi
-          if [[ "${{ inputs.aws-ubuntu-2204-kitchen-sink }}" == "true" ]]; then
-            args+=("aws/ubuntu-2204/kitchen-sink")
-          fi
-          if [[ "${{ inputs.aws-ubuntu-2404-kitchen-sink }}" == "true" ]]; then
-            args+=("aws/ubuntu-2404/kitchen-sink")
-          fi
-          if [[ "${{ inputs.gcp-debian-11-kitchen-sink }}" == "true" ]]; then
-            args+=("gcp/debian-11/kitchen-sink")
-          fi
-          if [[ "${{ inputs.gcp-debian-12-kitchen-sink }}" == "true" ]]; then
-            args+=("gcp/debian-12/kitchen-sink")
-          fi
-          if [[ "${{ inputs.gcp-ubuntu-2404-kitchen-sink }}" == "true" ]]; then
-            args+=("gcp/ubuntu-2404/kitchen-sink")
-          fi
+
+          args=()
+          for cloud in "${clouds[@]}"; do
+            for os in "${oses[@]}"; do
+              if [[ "$variant" == "all" ]]; then
+                args+=("${cloud}/${os}")
+              else
+                args+=("${cloud}/${os}/${variant}")
+              fi
+            done
+          done
 
           if [[ "${{ inputs.dry-run }}" == "true" ]]; then
             args+=("--dry-run")
@@ -85,11 +97,6 @@ jobs:
 
           if [[ -n "${{ inputs.version }}" ]]; then
             args+=("--version=${{ inputs.version }}")
-          fi
-
-          if [[ ${#args[@]} -eq 0 ]]; then
-            echo "::error::No images selected!"
-            exit 1
           fi
 
           echo y | ./build_aspect.sh "${args[@]}"
