@@ -1,0 +1,95 @@
+name: Build Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws-debian-11-kitchen-sink:
+        description: "aws/debian-11/kitchen-sink"
+        type: boolean
+        default: false
+      aws-debian-12-kitchen-sink:
+        description: "aws/debian-12/kitchen-sink"
+        type: boolean
+        default: false
+      aws-debian-13-kitchen-sink:
+        description: "aws/debian-13/kitchen-sink"
+        type: boolean
+        default: false
+      aws-ubuntu-2204-kitchen-sink:
+        description: "aws/ubuntu-2204/kitchen-sink"
+        type: boolean
+        default: false
+      aws-ubuntu-2404-kitchen-sink:
+        description: "aws/ubuntu-2404/kitchen-sink"
+        type: boolean
+        default: false
+      gcp-debian-11-kitchen-sink:
+        description: "gcp/debian-11/kitchen-sink"
+        type: boolean
+        default: false
+      gcp-debian-12-kitchen-sink:
+        description: "gcp/debian-12/kitchen-sink"
+        type: boolean
+        default: false
+      gcp-ubuntu-2404-kitchen-sink:
+        description: "gcp/ubuntu-2404/kitchen-sink"
+        type: boolean
+        default: false
+      dry-run:
+        description: "Dry run (do not actually build)"
+        type: boolean
+        default: false
+      version:
+        description: "Version override (leave empty for default yyyymmdd-0)"
+        type: string
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build selected images
+        run: |
+          args=()
+
+          if [[ "${{ inputs.aws-debian-11-kitchen-sink }}" == "true" ]]; then
+            args+=("aws/debian-11/kitchen-sink")
+          fi
+          if [[ "${{ inputs.aws-debian-12-kitchen-sink }}" == "true" ]]; then
+            args+=("aws/debian-12/kitchen-sink")
+          fi
+          if [[ "${{ inputs.aws-debian-13-kitchen-sink }}" == "true" ]]; then
+            args+=("aws/debian-13/kitchen-sink")
+          fi
+          if [[ "${{ inputs.aws-ubuntu-2204-kitchen-sink }}" == "true" ]]; then
+            args+=("aws/ubuntu-2204/kitchen-sink")
+          fi
+          if [[ "${{ inputs.aws-ubuntu-2404-kitchen-sink }}" == "true" ]]; then
+            args+=("aws/ubuntu-2404/kitchen-sink")
+          fi
+          if [[ "${{ inputs.gcp-debian-11-kitchen-sink }}" == "true" ]]; then
+            args+=("gcp/debian-11/kitchen-sink")
+          fi
+          if [[ "${{ inputs.gcp-debian-12-kitchen-sink }}" == "true" ]]; then
+            args+=("gcp/debian-12/kitchen-sink")
+          fi
+          if [[ "${{ inputs.gcp-ubuntu-2404-kitchen-sink }}" == "true" ]]; then
+            args+=("gcp/ubuntu-2404/kitchen-sink")
+          fi
+
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+            args+=("--dry-run")
+          fi
+
+          if [[ -n "${{ inputs.version }}" ]]; then
+            args+=("--version=${{ inputs.version }}")
+          fi
+
+          if [[ ${#args[@]} -eq 0 ]]; then
+            echo "::error::No images selected!"
+            exit 1
+          fi
+
+          echo y | ./build_aspect.sh "${args[@]}"
