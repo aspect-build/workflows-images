@@ -1,0 +1,119 @@
+name: Build Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws:
+        description: "AWS"
+        type: boolean
+        default: false
+      gcp:
+        description: "GCP"
+        type: boolean
+        default: false
+      debian-11:
+        description: "Debian 11"
+        type: boolean
+        default: false
+      debian-12:
+        description: "Debian 12"
+        type: boolean
+        default: false
+      debian-13:
+        description: "Debian 13"
+        type: boolean
+        default: false
+      ubuntu-2204:
+        description: "Ubuntu 22.04"
+        type: boolean
+        default: false
+      ubuntu-2404:
+        description: "Ubuntu 24.04"
+        type: boolean
+        default: false
+      variant:
+        description: "Image variant"
+        type: choice
+        default: "all"
+        options:
+          - all
+          - kitchen-sink
+          - docker
+          - gcc
+          - minimal
+      dry-run:
+        description: "Dry run (do not actually build)"
+        type: boolean
+        default: false
+      version:
+        description: "Version override (leave empty for default yyyymmdd-0)"
+        type: string
+        required: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Build matrix
+        id: matrix
+        run: |
+          clouds=()
+          if [[ "${{ inputs.aws }}" == "true" ]]; then clouds+=(aws); fi
+          if [[ "${{ inputs.gcp }}" == "true" ]]; then clouds+=(gcp); fi
+
+          oses=()
+          if [[ "${{ inputs.debian-11 }}" == "true" ]]; then oses+=(debian-11); fi
+          if [[ "${{ inputs.debian-12 }}" == "true" ]]; then oses+=(debian-12); fi
+          if [[ "${{ inputs.debian-13 }}" == "true" ]]; then oses+=(debian-13); fi
+          if [[ "${{ inputs.ubuntu-2204 }}" == "true" ]]; then oses+=(ubuntu-2204); fi
+          if [[ "${{ inputs.ubuntu-2404 }}" == "true" ]]; then oses+=(ubuntu-2404); fi
+
+          if [[ ${#clouds[@]} -eq 0 ]]; then
+            echo "::error::No cloud provider selected!"
+            exit 1
+          fi
+          if [[ ${#oses[@]} -eq 0 ]]; then
+            echo "::error::No operating system selected!"
+            exit 1
+          fi
+
+          includes=()
+          for cloud in "${clouds[@]}"; do
+            for os in "${oses[@]}"; do
+              includes+=("{\"cloud\":\"${cloud}\",\"os\":\"${os}\"}")
+            done
+          done
+
+          matrix="{\"include\":[$(IFS=,; echo "${includes[*]}")]}"
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+      fail-fast: false
+    name: "${{ matrix.cloud }}/${{ matrix.os }}"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          variant="${{ inputs.variant }}"
+          if [[ "$variant" == "all" ]]; then
+            arg="${{ matrix.cloud }}/${{ matrix.os }}"
+          else
+            arg="${{ matrix.cloud }}/${{ matrix.os }}/${variant}"
+          fi
+
+          flags=()
+          if [[ "${{ inputs.dry-run }}" == "true" ]]; then
+            flags+=("--dry-run")
+          fi
+          if [[ -n "${{ inputs.version }}" ]]; then
+            flags+=("--version=${{ inputs.version }}")
+          fi
+
+          echo y | ./build_aspect.sh "$arg" "${flags[@]}"
