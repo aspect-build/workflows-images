@@ -116,6 +116,7 @@ locals {
     "libzstd1",
     "make",
     "moreutils",
+    "tzdata",
     "xauth",
     "xvfb",
     "yq",
