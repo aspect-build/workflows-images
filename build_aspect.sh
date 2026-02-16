@@ -5,9 +5,6 @@ set -o errexit -o nounset -o pipefail
 current_date=$(date +"%Y%m%d")
 build_number=0 # increment if building multiple times on the same day, otherwise leave at 0
 
-# version is the date built in yyyymmdd format, followed by a dash and the zero build number on that date
-version="${current_date}-${build_number}"
-
 architectures=(
   amd64
   arm64
@@ -91,16 +88,24 @@ continue_or_exit() {
 
 function main() {
   dry_run=false
+  version=""
   new_args=()
   for arg in "$@"; do
     if [[ "$arg" == "--dry-run" ]]; then
       dry_run=true
     elif [[ "$arg" == --version=* ]]; then
       version="${arg#--version=}"
+    elif [[ "$arg" == --build-number=* ]]; then
+      build_number="${arg#--build-number=}"
     else
       new_args+=("$arg")
     fi
   done
+
+  # version is the date built in yyyymmdd format, followed by a dash and the build number on that date
+  if [[ -z "$version" ]]; then
+    version="${current_date}-${build_number}"
+  fi
   if [[ ${new_args[@]+"!"} == "!" ]]; then
     set -- "${new_args[@]}"
   else
