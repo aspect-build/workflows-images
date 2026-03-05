@@ -2,6 +2,8 @@
 
 set -o errexit -o nounset -o pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 current_date=$(date +"%Y%m%d")
 build_number=0 # increment if building multiple times on the same day, otherwise leave at 0
 
@@ -10,20 +12,10 @@ architectures=(
   arm64
 )
 
-aws_profile=workflows-images_AspectAdministration
-
-aws_regions=(
-  us-east-1
-  us-east-2
-  us-west-1
-  us-west-2
-  eu-central-1
-  eu-west-1
+# Distros that do not support arm64
+no_arm64_distros=(
+  debian-11
 )
-
-gcp_project=aspect-workflows-images
-
-gcp_zone="us-central1-a"
 
 all_images=(
     # AWS amazon linux 2
@@ -81,7 +73,7 @@ all_images=(
 )
 
 continue_or_exit() {
-  read -p "$1 (y/N): " -n 1 choice
+  read -rp "$1 (y/N): " -n 1 choice
   echo
   case "$choice" in
     [Yy]*) return 0 ;;
@@ -89,9 +81,64 @@ continue_or_exit() {
   esac
 }
 
+# Check if a distro supports arm64
+supports_arch() {
+  local distro="$1"
+  local arch="$2"
+  if [[ "$arch" == "arm64" ]]; then
+    for d in "${no_arm64_distros[@]}"; do
+      if [[ "$distro" == "$d" ]]; then
+        return 1
+      fi
+    done
+  fi
+  return 0
+}
+
+# Collect any finished jobs from the pids array
+collect_finished() {
+  local new_pids=()
+  for pid in "${pids[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then
+      new_pids+=("$pid")
+    else
+      wait "$pid" && true
+      local exit_code=$?
+      local label="${pid_labels[$pid]}"
+      local logfile="${pid_logfiles[$pid]}"
+      if [[ $exit_code -eq 0 ]]; then
+        echo "  DONE: ${label}"
+        succeeded+=("$label")
+      elif [[ "$dry_run" == "true" ]] && grep -q "DRY RUN COMPLETE" "$logfile" 2>/dev/null; then
+        echo "  DONE: ${label} (dry run)"
+        succeeded+=("$label")
+      else
+        echo "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile})"
+        failed+=("${label} (log: ${logfile})")
+      fi
+    fi
+  done
+  pids=()
+  if [[ ${#new_pids[@]} -gt 0 ]]; then
+    pids=("${new_pids[@]}")
+  fi
+}
+
+# Wait for a job slot to open up when at max concurrency
+wait_for_slot() {
+  local max_jobs="$1"
+  while [[ ${#pids[@]} -ge $max_jobs ]]; do
+    collect_finished
+    if [[ ${#pids[@]} -ge $max_jobs ]]; then
+      sleep 1
+    fi
+  done
+}
+
 function main() {
   dry_run=false
   version=""
+  max_jobs=100
   new_args=()
   for arg in "$@"; do
     if [[ "$arg" == "--dry-run" ]]; then
@@ -100,6 +147,8 @@ function main() {
       version="${arg#--version=}"
     elif [[ "$arg" == --build-number=* ]]; then
       build_number="${arg#--build-number=}"
+    elif [[ "$arg" == --jobs=* ]]; then
+      max_jobs="${arg#--jobs=}"
     else
       new_args+=("$arg")
     fi
@@ -109,7 +158,7 @@ function main() {
   if [[ -z "$version" ]]; then
     version="${current_date}-${build_number}"
   fi
-  if [[ ${new_args[@]+"!"} == "!" ]]; then
+  if [[ ${#new_args[@]} -gt 0 ]]; then
     set -- "${new_args[@]}"
   else
     set --
@@ -121,226 +170,132 @@ function main() {
   else
     for i in "${all_images[@]}"; do
       for m in "$@"; do
-        if [[ "$i" =~ "${m}" ]]; then
+        if [[ "$i" =~ $m ]]; then
           images+=("${i}")
         fi
       done
     done
   fi
 
-  if [[ ${images[@]+"!"} != "!" ]]; then
+  if [[ ${#images[@]} -eq 0 ]]; then
     echo "No matching images!"
     exit 1
   fi
 
+  # Build list of (image, arch) jobs to run, skipping unsupported combos
+  declare -a job_images=()
+  declare -a job_arches=()
+  for image in "${images[@]}"; do
+    IFS='/' read -ra elems <<< "${image}"
+    local distro="${elems[1]}"
+    for arch in "${architectures[@]}"; do
+      if supports_arch "$distro" "$arch"; then
+        job_images+=("$image")
+        job_arches+=("$arch")
+      fi
+    done
+  done
+
+  local total_jobs=${#job_images[@]}
+
   if [[ "$dry_run" == "true" ]]; then
-    echo -e "\nThe following images will be built at version ${version} (DRY RUN):"
+    echo -e "\nThe following ${total_jobs} image builds will run at version ${version} (DRY RUN), max ${max_jobs} parallel:"
   else
-    echo -e "\nThe following images will be built at version ${version}:"
+    echo -e "\nThe following ${total_jobs} image builds will run at version ${version}, max ${max_jobs} parallel:"
   fi
-  for i in "${images[@]}"; do
-    echo -e "  - ${i}"
+  for idx in "${!job_images[@]}"; do
+    echo -e "  - ${job_images[$idx]} (${job_arches[$idx]})"
   done
 
   echo ""
   continue_or_exit "❓ Are you sure you want to proceed?"
 
+  # Run packer init serially for all unique packer files to avoid race conditions
+  declare -A inited_files=()
+  echo -e "\nRunning packer init for all unique packer files..."
   for image in "${images[@]}"; do
-    IFS='/' read -a elems <<< "${image}"
-    cloud="${elems[0]}"
-    distro="${elems[1]}"
-    file="${elems[2]}"
-    variant="${file%.pkr.hcl}"
-    if [ "${cloud}" == "aws" ]; then
-      for arch in "${architectures[@]}"; do
-        build_aws "${distro}" "${variant}" "${arch}" "${dry_run}"
-      done
-    elif [ "${cloud}" == "gcp" ]; then
-      for arch in ${architectures[@]}; do
-        build_gcp "${distro}" "${variant}" "${arch}" "${dry_run}"
-      done
-    else
-      echo "ERROR: unrecognized cloud '${cloud}'"
-      exit 1
+    if [[ -z "${inited_files[$image]:-}" ]]; then
+      echo "  packer init ${image}"
+      packer init "${image}"
+      inited_files[$image]=1
     fi
   done
-}
 
-function build_aws() {
-  local distro="$1"
-  local variant="$2"
-  local arch="$3"
-  local dry_run="$4"
+  # Create log directory
+  local log_dir="logs/${version}"
+  mkdir -p "${log_dir}"
+  echo -e "\nLogs will be written to ${log_dir}/"
 
-  local packer_file="aws/${distro}/${variant}.pkr.hcl"
-  local family="aspect-workflows-${distro}-${variant}"
-  local name="${family}-${arch}-${version}"
+  # Spawn parallel builds
+  declare -a pids=()
+  declare -A pid_labels=()
+  declare -A pid_logfiles=()
+  declare -a succeeded=()
+  declare -a failed=()
 
-  local build_region="${aws_regions[0]}"
-  local copy_regions=("${aws_regions[@]:1}")
+  echo -e "\nStarting builds..."
+  for idx in "${!job_images[@]}"; do
+    local image="${job_images[$idx]}"
+    local arch="${job_arches[$idx]}"
 
-  if [[ "$dry_run" == "true" ]]; then
-    echo -e "\n\n\n\n======== ${name} (DRY RUN) ========"
-  else
-    echo -e "\n\n\n\n======== ${name} ========"
-  fi
+    IFS='/' read -ra elems <<< "${image}"
+    local cloud="${elems[0]}"
+    local distro="${elems[1]}"
+    local file="${elems[2]}"
+    local variant="${file%.pkr.hcl}"
+    local name="aspect-workflows-${distro}-${variant}-${arch}-${version}"
+    local logfile="${log_dir}/${cloud}-${distro}-${variant}-${arch}.log"
 
-  if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
-    # No arm64 arch available for debian-11 yet.
-    # See https://github.com/aspect-build/silo/issues/4001 for more context.
-    echo "Skipping ${name} (currently no arm64 support for ${distro})"
-    return
-  fi
+    # Wait for a slot if at max concurrency
+    wait_for_slot "$max_jobs"
 
-  # Check if image already exists in build region
-  existing_ami=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}" --query 'Images[0].ImageId' --output text 2>/dev/null || true)
-  if [ -n "${existing_ami}" ] && [ "${existing_ami}" != "None" ]; then
-    echo "${name} already exists in ${build_region}"
-  else
-    # init packer
-    echo "Packer init for ${name}"
-    set -x
-    packer init "${packer_file}"
-    set +x
+    echo "  START: ${name} -> ${logfile}"
 
-    # build the AMI
-    echo "Building ${name}"
-    set -x
-    AWS_PROFILE="${aws_profile}" packer build -var "version=${version}" -var "region=${build_region}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
-    set +x
-    date
-
-    # if this was a dry run then we're done here
+    local worker_args=(
+      --image="${image}"
+      --arch="${arch}"
+      --version="${version}"
+    )
     if [[ "$dry_run" == "true" ]]; then
-      return
+      worker_args+=(--dry-run)
     fi
+
+    "${SCRIPT_DIR}/build_aspect_image.sh" "${worker_args[@]}" > "${logfile}" 2>&1 &
+    local pid=$!
+    pids+=("$pid")
+    pid_labels[$pid]="$name"
+    pid_logfiles[$pid]="$logfile"
+  done
+
+  # Wait for all remaining jobs to finish
+  echo -e "\nWaiting for remaining builds to finish..."
+  while [[ ${#pids[@]} -gt 0 ]]; do
+    collect_finished
+    if [[ ${#pids[@]} -gt 0 ]]; then
+      sleep 1
+    fi
+  done
+
+  # Summary
+  echo -e "\n\n======== BUILD SUMMARY ========"
+  echo "Total: ${total_jobs} | Succeeded: ${#succeeded[@]} | Failed: ${#failed[@]}"
+
+  if [[ ${#succeeded[@]} -gt 0 ]]; then
+    echo -e "\nSucceeded:"
+    while IFS= read -r s; do
+      echo "  ✓ ${s}"
+    done < <(printf '%s\n' "${succeeded[@]}" | sort)
   fi
 
-  # determine the ID of the AMI in the build region
-  describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${build_region}" --filters "Name=name,Values=${name}")
-  amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
-  if [ -z "${amis:-}" ]; then
-    echo "ERROR: image $name not found in ${build_region}"
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    echo -e "\nFailed:"
+    while IFS= read -r f; do
+      echo "  ✗ ${f}"
+    done < <(printf '%s\n' "${failed[@]}" | sort)
     exit 1
   fi
-  if [ "${#amis[@]}" -ne 1 ]; then
-    echo "ERROR: expected 1 ${name} image in ${build_region}"
-    exit 1
-  fi
-  ami="${amis[0]}"
 
-  # copy the AMI to copy regions that don't already have it
-  for copy_region in ${copy_regions[@]}; do
-    existing_copy=$(aws ec2 describe-images --profile "${aws_profile}" --region "${copy_region}" --filters "Name=name,Values=${name}" --query 'Images[0].ImageId' --output text 2>/dev/null || true)
-    if [ -n "${existing_copy}" ] && [ "${existing_copy}" != "None" ]; then
-      echo "${name} already exists in ${copy_region}"
-    else
-      echo "Copying ${name} ("${ami}") to ${copy_region}"
-      aws ec2 copy-image --profile "${aws_profile}" --region "${copy_region}" --name "${name}" --source-region "${build_region}" --source-image-id "${ami}"
-    fi
-  done
-  date
-
-  # wait until all images are available across all regions and ensure they are public
-  echo "Ensuring all images are available and public..."
-  available=0
-  num_regions="${#aws_regions[@]}"
-  until [ "${available}" -eq "${num_regions}" ]
-  do
-    available=0
-    for region in "${aws_regions[@]}"; do
-      describe_images=$(aws ec2 describe-images --profile "${aws_profile}" --region "${region}" --filters "Name=name,Values=${name}")
-      states=($(echo "${describe_images}" | jq  .Images[0].State | jq . -r))
-      amis=($(echo "${describe_images}" | jq  .Images[0].ImageId | jq . -r))
-      if [ -z "${states:-}" ]; then
-        echo "ERROR: image ${name} not found in ${region}"
-        exit 1
-      fi
-      if [ -z "${amis:-}" ]; then
-        echo "ERROR: image ${name} not found in ${region}"
-        exit 1
-      fi
-      if [ "${#states[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 ${name} image in ${region}"
-        exit 1
-      fi
-      if [ "${#amis[@]}" -ne 1 ]; then
-        echo "ERROR: expected 1 ${name} image in ${region}"
-        exit 1
-      fi
-      state="${states[0]}"
-      ami="${amis[0]}"
-      if [ "${state}" == "available" ]; then
-        # set image to public once it is available; this can be safely called multiple times
-        aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
-        echo "${name} in ${region} is available and public"
-        ((++available))
-      else
-        echo "${name} in ${region} is ${state}"
-      fi
-    done
-    date
-    if [ "${available}" -ne "${num_regions}" ]; then
-      sleep 10
-    fi
-  done
-}
-
-function build_gcp() {
-  local distro="$1"
-  local variant="$2"
-  local arch="$3"
-  local dry_run="$4"
-
-  local packer_file="gcp/${distro}/${variant}.pkr.hcl"
-  local family="aspect-workflows-${distro}-${variant}"
-  local name="${family}-${arch}-${version}"
-
-  if [[ "$dry_run" == "true" ]]; then
-    echo -e "\n\n\n\n======== ${name} (DRY RUN)"
-  else
-    echo -e "\n\n\n\n======== ${name}"
-  fi
-
-  if [ "${distro}" == "debian-11" ] && [ "${arch}" == "arm64" ]; then
-    # No arm64 arch base image available for debian-11 on GCP.
-    echo "Skipping ${name} (currently no arm64 support for ${distro})"
-    return
-  fi
-
-  # Check if image already exists
-  if gcloud compute images describe "${name}" --project="${gcp_project}" &>/dev/null; then
-    echo "${name} already exists in ${gcp_project}"
-  else
-    # init packer
-    echo "Packer init for ${name}"
-    set -x
-    packer init "${packer_file}"
-    set +x
-
-    # build the image
-    echo "Building ${name}"
-    date
-    set -x
-    packer build -var "version=${version}" -var "project=${gcp_project}" -var "zone=${gcp_zone}" -var "family=${family}" -var "arch=${arch}" -var "dry_run=${dry_run}" "$packer_file"
-    set +x
-    date
-
-    # if this was a dry run then we're done here
-    if [[ "$dry_run" == "true" ]]; then
-      return
-    fi
-  fi
-
-  # ensure image is public
-  gcloud config set project "${gcp_project}" 2>/dev/null
-  existing_policy=$(gcloud compute images get-iam-policy "${name}" --format=json 2>/dev/null || echo '{}')
-  if echo "${existing_policy}" | jq -e '.bindings[]? | select(.role == "roles/compute.imageUser") | .members[]? | select(. == "allAuthenticatedUsers")' &>/dev/null; then
-    echo "${name} in ${gcp_project} is public"
-  else
-    gcloud compute images add-iam-policy-binding "${name}" --member='allAuthenticatedUsers' --role='roles/compute.imageUser'
-    echo "${name} in ${gcp_project} is now public"
-  fi
+  echo -e "\nAll builds completed successfully!"
 }
 
 main "$@"
