@@ -52,7 +52,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, aspect-workflows, aspect-default-aws]
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -91,7 +91,7 @@ jobs:
 
   build:
     needs: setup
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, aspect-workflows, aspect-default-aws]
     strategy:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
       fail-fast: false
