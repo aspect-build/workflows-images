@@ -14,6 +14,7 @@ aws_profile=workflows-images_AspectAdministration
 
 aws_regions=(
   us-west-2
+  us-west-1
   us-east-1
   us-east-2
 )
