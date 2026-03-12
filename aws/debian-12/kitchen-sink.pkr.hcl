@@ -168,6 +168,11 @@ build {
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
+      # Symlink legacy library names that don't exist in Debian 12 but are required by some toolchains.
+      # libssl1.1 was replaced by libssl3; libtinfo5 was replaced by libtinfo6.
+      "MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && sudo ln -sf /usr/lib/$MULTIARCH/libssl.so.3 /usr/lib/$MULTIARCH/libssl.so.1.1",
+      "MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && sudo ln -sf /usr/lib/$MULTIARCH/libtinfo.so.6 /usr/lib/$MULTIARCH/libtinfo.so.5",
+
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
 
