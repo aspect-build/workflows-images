@@ -78,6 +78,7 @@ locals {
     "libnss3",
     "libssl-dev",
     "libstdc++-11-dev",
+    "libtinfo5",
     "libxss1",
     "libxtst6",
     "libyaml-dev",
