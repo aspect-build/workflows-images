@@ -87,6 +87,11 @@ build {
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
 
+      # Mitigate AF_ALG kernel module CVE: disable algif_aead.
+      # CVE details: https://copy.fail/
+      "sudo sh -c 'echo \"install algif_aead /bin/true\" > /etc/modprobe.d/disable-algif.conf'",
+      "sudo modprobe -r algif_aead 2>/dev/null || true",
+
       # Exit with 325 if this is a dry run
       format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
     ]
