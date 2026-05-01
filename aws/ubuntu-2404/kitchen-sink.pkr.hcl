@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20251212"
+    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${var.arch}-server-20260424"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -148,6 +148,9 @@ build {
 
   provisioner "shell" {
     inline = concat([
+      # Wait for cloud-init to finish so unattended-upgrades does not race apt operations.
+      "cloud-init status --wait",
+
       # Install amazon cloud watch agent
       "sudo curl https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb -O",
       "sudo dpkg --install --skip-same-version amazon-cloudwatch-agent.deb",

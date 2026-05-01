@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "ubuntu-2404-noble-${var.arch}-v20260117"
+  source_image = "ubuntu-2404-noble-${var.arch}-v20260422"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
@@ -88,6 +88,9 @@ build {
 
   provisioner "shell" {
     inline = [
+      # Wait for cloud-init to finish so unattended-upgrades does not race apt operations.
+      "cloud-init status --wait",
+
       # Disable automated apt updates
       "sudo systemctl disable apt-daily-upgrade.timer apt-daily.timer",
 
