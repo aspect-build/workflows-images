@@ -95,6 +95,23 @@ supports_arch() {
   return 0
 }
 
+# Print over the in-progress status line when stdout is a TTY.
+status_println() {
+  if [[ -t 1 ]]; then
+    printf "\r\033[K%s\n" "$1"
+  else
+    echo "$1"
+  fi
+}
+
+# Refresh the in-progress status line in place; only on a TTY.
+status_refresh() {
+  if [[ -t 1 ]]; then
+    printf "\r\033[K  In progress: %d remaining (succeeded: %d, failed: %d)" \
+      "${#pids[@]}" "${#succeeded[@]}" "${#failed[@]}"
+  fi
+}
+
 # Collect any finished jobs from the pids array
 collect_finished() {
   local new_pids=()
@@ -107,13 +124,13 @@ collect_finished() {
       local label="${pid_labels[$pid]}"
       local logfile="${pid_logfiles[$pid]}"
       if [[ $exit_code -eq 0 ]]; then
-        echo "  DONE: ${label}"
+        status_println "  DONE: ${label}"
         succeeded+=("$label")
       elif [[ "$dry_run" == "true" ]] && grep -q "DRY RUN COMPLETE" "$logfile" 2>/dev/null; then
-        echo "  DONE: ${label} (dry run)"
+        status_println "  DONE: ${label} (dry run)"
         succeeded+=("$label")
       else
-        echo "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile})"
+        status_println "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile})"
         failed+=("${label} (log: ${logfile})")
       fi
     fi
@@ -272,9 +289,11 @@ function main() {
   while [[ ${#pids[@]} -gt 0 ]]; do
     collect_finished
     if [[ ${#pids[@]} -gt 0 ]]; then
+      status_refresh
       sleep 1
     fi
   done
+  if [[ -t 1 ]]; then printf "\r\033[K"; fi
 
   # Summary
   echo -e "\n\n======== BUILD SUMMARY ========"
