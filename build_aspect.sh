@@ -104,11 +104,36 @@ status_println() {
   fi
 }
 
+# Format an elapsed-seconds value as "Ns" or "MmNs".
+fmt_elapsed() {
+  local sec=$1
+  if (( sec >= 60 )); then
+    printf '%dm%02ds' $((sec / 60)) $((sec % 60))
+  else
+    printf '%ds' "$sec"
+  fi
+}
+
 # Refresh the in-progress status line in place; only on a TTY.
+# When few jobs remain (<= status_detail_threshold), inline their short
+# names and elapsed time so the user can see exactly what is stuck.
+status_detail_threshold=5
 status_refresh() {
-  if [[ -t 1 ]]; then
+  [[ -t 1 ]] || return
+  local remaining=${#pids[@]}
+  if (( remaining > 0 && remaining <= status_detail_threshold )); then
+    local details=""
+    for pid in "${pids[@]}"; do
+      local elapsed=$(( SECONDS - ${pid_start_times[$pid]:-$SECONDS} ))
+      local short="${pid_labels[$pid]#aspect-workflows-}"
+      short="${short%-${version}}"
+      details+=" ${short}($(fmt_elapsed "$elapsed"))"
+    done
+    printf "\r\033[K  In progress: %d remaining (succeeded: %d, failed: %d):%s" \
+      "$remaining" "${#succeeded[@]}" "${#failed[@]}" "$details"
+  else
     printf "\r\033[K  In progress: %d remaining (succeeded: %d, failed: %d)" \
-      "${#pids[@]}" "${#succeeded[@]}" "${#failed[@]}"
+      "$remaining" "${#succeeded[@]}" "${#failed[@]}"
   fi
 }
 
@@ -247,6 +272,7 @@ function main() {
   declare -a pids=()
   declare -A pid_labels=()
   declare -A pid_logfiles=()
+  declare -A pid_start_times=()
   declare -a succeeded=()
   declare -a failed=()
 
@@ -282,6 +308,7 @@ function main() {
     pids+=("$pid")
     pid_labels[$pid]="$name"
     pid_logfiles[$pid]="$logfile"
+    pid_start_times[$pid]=$SECONDS
   done
 
   # Wait for all remaining jobs to finish
