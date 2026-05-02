@@ -327,21 +327,24 @@ function main() {
   echo "Total: ${total_jobs} | Succeeded: ${#succeeded[@]} | Failed: ${#failed[@]}"
 
   if [[ ${#succeeded[@]} -gt 0 ]]; then
-    echo -e "\nSucceeded:"
+    echo -e "\nSucceeded (${#succeeded[@]}):"
     while IFS= read -r s; do
       echo "  ✓ ${s}"
     done < <(printf '%s\n' "${succeeded[@]}" | sort)
   fi
 
   if [[ ${#failed[@]} -gt 0 ]]; then
-    echo -e "\nFailed:"
+    echo -e "\nFailed (${#failed[@]}):"
     while IFS= read -r f; do
       echo "  ✗ ${f}"
     done < <(printf '%s\n' "${failed[@]}" | sort)
-    exit 1
   fi
 
-  echo -e "\nAll builds completed successfully!"
+  echo -e "\n${#succeeded[@]} passed, ${#failed[@]} failed (of ${total_jobs} total)"
+
+  if [[ ${#failed[@]} -gt 0 ]]; then
+    exit 1
+  fi
 }
 
 main "$@"
