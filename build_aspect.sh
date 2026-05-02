@@ -125,8 +125,7 @@ status_refresh() {
     local details=""
     for pid in "${pids[@]}"; do
       local elapsed=$(( SECONDS - ${pid_start_times[$pid]:-$SECONDS} ))
-      local short="${pid_labels[$pid]#aspect-workflows-}"
-      short="${short%-${version}}"
+      local short="${pid_paths[$pid]%.pkr.hcl}/${pid_arches[$pid]}"
       details+=" ${short}($(fmt_elapsed "$elapsed"))"
     done
     printf "\r\033[K  In progress: %d remaining (succeeded: %d, failed: %d):%s" \
@@ -147,18 +146,21 @@ collect_finished() {
       wait "$pid" && true
       local exit_code=$?
       local label="${pid_labels[$pid]}"
+      local path="${pid_paths[$pid]}"
+      local arch="${pid_arches[$pid]}"
       local logfile="${pid_logfiles[$pid]}"
       local elapsed
       elapsed=$(fmt_elapsed $(( SECONDS - ${pid_start_times[$pid]:-$SECONDS} )))
+      local display="${path} (${arch}) -> ${label}"
       if [[ $exit_code -eq 0 ]]; then
-        status_println "  DONE: ${label} [${elapsed}]"
-        succeeded+=("$label")
+        status_println "  DONE: ${display} [${elapsed}]"
+        succeeded+=("$display")
       elif [[ "$dry_run" == "true" ]] && grep -q "DRY RUN COMPLETE" "$logfile" 2>/dev/null; then
-        status_println "  DONE: ${label} (dry run) [${elapsed}]"
-        succeeded+=("$label")
+        status_println "  DONE: ${display} (dry run) [${elapsed}]"
+        succeeded+=("$display")
       else
-        status_println "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile}) [${elapsed}]"
-        failed+=("${label} (log: ${logfile})")
+        status_println "  FAIL: ${display} (exit code ${exit_code}, log: ${logfile}) [${elapsed}]"
+        failed+=("${display} (log: ${logfile})")
       fi
     fi
   done
@@ -273,6 +275,8 @@ function main() {
   # Spawn parallel builds
   declare -a pids=()
   declare -A pid_labels=()
+  declare -A pid_paths=()
+  declare -A pid_arches=()
   declare -A pid_logfiles=()
   declare -A pid_start_times=()
   declare -a succeeded=()
@@ -309,6 +313,8 @@ function main() {
     local pid=$!
     pids+=("$pid")
     pid_labels[$pid]="$name"
+    pid_paths[$pid]="$image"
+    pid_arches[$pid]="$arch"
     pid_logfiles[$pid]="$logfile"
     pid_start_times[$pid]=$SECONDS
   done
