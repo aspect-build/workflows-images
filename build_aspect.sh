@@ -148,14 +148,16 @@ collect_finished() {
       local exit_code=$?
       local label="${pid_labels[$pid]}"
       local logfile="${pid_logfiles[$pid]}"
+      local elapsed
+      elapsed=$(fmt_elapsed $(( SECONDS - ${pid_start_times[$pid]:-$SECONDS} )))
       if [[ $exit_code -eq 0 ]]; then
-        status_println "  DONE: ${label}"
+        status_println "  DONE: ${label} [${elapsed}]"
         succeeded+=("$label")
       elif [[ "$dry_run" == "true" ]] && grep -q "DRY RUN COMPLETE" "$logfile" 2>/dev/null; then
-        status_println "  DONE: ${label} (dry run)"
+        status_println "  DONE: ${label} (dry run) [${elapsed}]"
         succeeded+=("$label")
       else
-        status_println "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile})"
+        status_println "  FAIL: ${label} (exit code ${exit_code}, log: ${logfile}) [${elapsed}]"
         failed+=("${label} (log: ${logfile})")
       fi
     fi
