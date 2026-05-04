@@ -165,8 +165,12 @@ build {
       # Add Node.js repository
       "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
 
+      # Add xtradeb/apps apt repo for chromium (snap chromium breaks tests on CI).
+      # Bypass add-apt-repository to avoid launchpadlib API call to api.launchpad.net.
+      "curl -fsSL 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x5301FA4FD93244FBC6F6149982BB6851C64F6880' | sudo gpg --dearmor -o /etc/apt/keyrings/xtradeb-apps.gpg",
+      "echo 'deb [signed-by=/etc/apt/keyrings/xtradeb-apps.gpg] https://ppa.launchpadcontent.net/xtradeb/apps/ubuntu noble main' | sudo tee /etc/apt/sources.list.d/xtradeb-apps.list > /dev/null",
+
       # Install apt dependencies
-      "sudo add-apt-repository ppa:xtradeb/apps -y", # repository for chromium package (the Ubuntu chromium-browser packages installs chromium-browser as a snap package which breaks tests on CI)
       "sudo apt-get update -y",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
