@@ -186,18 +186,18 @@ function main() {
   version=""
   max_jobs=100
   new_args=()
-  for arg in "$@"; do
-    if [[ "$arg" == "--dry-run" ]]; then
-      dry_run=true
-    elif [[ "$arg" == --version=* ]]; then
-      version="${arg#--version=}"
-    elif [[ "$arg" == --build-number=* ]]; then
-      build_number="${arg#--build-number=}"
-    elif [[ "$arg" == --jobs=* ]]; then
-      max_jobs="${arg#--jobs=}"
-    else
-      new_args+=("$arg")
-    fi
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run)          dry_run=true ;;
+      --version=*)        version="${1#--version=}" ;;
+      --version)          shift; version="$1" ;;
+      --build-number=*)   build_number="${1#--build-number=}" ;;
+      --build-number)     shift; build_number="$1" ;;
+      --jobs=*)           max_jobs="${1#--jobs=}" ;;
+      --jobs)             shift; max_jobs="$1" ;;
+      *)                  new_args+=("$1") ;;
+    esac
+    shift
   done
 
   # version is the date built in yyyymmdd format, followed by a dash and the build number on that date
