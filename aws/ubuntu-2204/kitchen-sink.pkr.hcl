@@ -109,7 +109,6 @@ locals {
     "xauth",
     "xdg-utils",
     "xvfb",
-    "yq",
     "zlib1g-dev",
   ]
 
@@ -153,9 +152,6 @@ build {
       "sudo curl https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${var.arch}/latest/amazon-cloudwatch-agent.deb -O",
       "sudo dpkg --install --skip-same-version amazon-cloudwatch-agent.deb",
 
-      # Required for yq on Ubuntu 22.04 (https://mikefarah.gitbook.io/yq/v3.x#on-ubuntu-16.04-or-higher-from-debian-package)
-      "sudo add-apt-repository ppa:rmescandon/yq",
-
       # Add Docker repository
       "sudo apt-get install -y ca-certificates curl",
       "sudo install -m 0755 -d /etc/apt/keyrings",
@@ -174,6 +170,11 @@ build {
       "curl \"${local.awscli_url[var.arch]}\" -o \"awscliv2.zip\"",
       "unzip awscliv2.zip",
       "sudo ./aws/install",
+
+      # Install yq
+      "sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${var.arch} -o /usr/bin/yq",
+      "sudo chmod +x /usr/bin/yq",
+      "yq --version",
 
       # Mitigate AF_ALG kernel module CVE: disable algif_aead.
       # CVE details: https://copy.fail/
