@@ -137,6 +137,13 @@ source "amazon-ebs" "runner" {
   source_ami                                = data.amazon-ami.ubuntu.id
   temporary_security_group_source_public_ip = true
   encrypt_boot                              = var.encrypt_boot
+
+  launch_block_device_mappings {
+    device_name           = "/dev/sda1"
+    volume_size           = 16
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
 }
 
 build {

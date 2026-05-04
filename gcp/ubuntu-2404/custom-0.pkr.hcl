@@ -83,7 +83,7 @@ locals {
     "make",
     "moreutils",
     "openjdk-21-jdk",
-    "python3.13",
+    "python3.12",
     "xauth",
     "xvfb",
     "yq",
@@ -142,7 +142,6 @@ build {
       "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null",
 
       # Install apt dependencies
-      "sudo add-apt-repository ppa:deadsnakes/ppa -y",
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
