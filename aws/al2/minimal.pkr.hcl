@@ -54,10 +54,12 @@ variable "dry_run" {
 # Lookup the base AMI we want:
 # Amazon Linux 2 Kernel 5.10 AMI <rev> <arch> HVM gp2
 # https://github.com/aws/amazon-ecs-ami/blob/main/al2kernel5dot10.pkr.hcl
+# This revision (>= 20260508.0) includes the AWS kernel patch for CVE-2026-31431
+# (AF_ALG / algif_aead): https://explore.alas.aws.amazon.com/CVE-2026-31431.html
 data "amazon-ami" "al2" {
   filters = {
     virtualization-type = "hvm"
-    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20260427.1-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
+    name                = "amzn2-ami-kernel-5.10-hvm-2.0.20260508.0-${var.arch == "amd64" ? "x86_64" : var.arch}-gp2",
     root-device-type    = "ebs"
   }
   owners      = ["137112412989"] # Amazon
@@ -116,10 +118,6 @@ build {
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
 
-      # Mitigate AF_ALG kernel module CVE: disable algif_aead.
-      # CVE details: https://copy.fail/
-      "sudo sh -c 'echo \"install algif_aead /bin/true\" > /etc/modprobe.d/disable-algif.conf'",
-      "sudo modprobe -r algif_aead 2>/dev/null || true",
       # Mitigate Dirty Frag CVE-2026-43284: disable esp4, esp6, rxrpc kernel modules.
       # CVE details: https://docs.aspect.build/security/advisories/CVE-2026-31431#cve-2026-43284-dirty-frag-mitigations
       "sudo sh -c 'printf \"install esp4 /bin/true\\ninstall esp6 /bin/true\\ninstall rxrpc /bin/true\\n\" > /etc/modprobe.d/disable-dirtyfrag.conf'",
