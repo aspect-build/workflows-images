@@ -140,6 +140,10 @@ build {
       # CVE details: https://copy.fail/
       "sudo sh -c 'echo \"install algif_aead /bin/true\" > /etc/modprobe.d/disable-algif.conf'",
       "sudo modprobe -r algif_aead 2>/dev/null || true",
+      # Mitigate Dirty Frag CVE-2026-43284: disable esp4, esp6, rxrpc kernel modules.
+      # CVE details: https://docs.aspect.build/security/advisories/CVE-2026-31431#cve-2026-43284-dirty-frag-mitigations
+      "sudo sh -c 'printf \"install esp4 /bin/true\\ninstall esp6 /bin/true\\ninstall rxrpc /bin/true\\n\" > /etc/modprobe.d/disable-dirtyfrag.conf'",
+      "sudo modprobe -r esp4 esp6 rxrpc 2>/dev/null || true",
 
       # Exit with 325 if this is a dry run
       format("if [ \"%s\" = \"true\" ]; then echo 'DRY RUN COMPLETE for %s-%s'; exit 325; fi", var.dry_run, var.family, var.arch),
