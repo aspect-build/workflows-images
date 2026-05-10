@@ -331,11 +331,19 @@ function main() {
   if [[ -t 1 ]]; then printf "\r\033[K"; fi
 
   # Summary
-  echo -e "\n\n======== BUILD SUMMARY ========"
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "\n\n======== DRY RUN SUMMARY (no images built or published) ========"
+  else
+    echo -e "\n\n======== BUILD SUMMARY ========"
+  fi
   echo "Total: ${total_jobs} | Succeeded: ${#succeeded[@]} | Failed: ${#failed[@]}"
 
   if [[ ${#succeeded[@]} -gt 0 ]]; then
-    echo -e "\nSucceeded (${#succeeded[@]}):"
+    if [[ "$dry_run" == "true" ]]; then
+      echo -e "\nValidated, DRY RUN — not built or published (${#succeeded[@]}):"
+    else
+      echo -e "\nSucceeded (${#succeeded[@]}):"
+    fi
     while IFS= read -r s; do
       echo "  ✓ ${s}"
     done < <(printf '%s\n' "${succeeded[@]}" | sort)
@@ -348,7 +356,11 @@ function main() {
     done < <(printf '%s\n' "${failed[@]}" | sort)
   fi
 
-  echo -e "\n${#succeeded[@]} passed, ${#failed[@]} failed (of ${total_jobs} total)"
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "\n${#succeeded[@]} validated, ${#failed[@]} failed (of ${total_jobs} total) — DRY RUN, no images built or published"
+  else
+    echo -e "\n${#succeeded[@]} passed, ${#failed[@]} failed (of ${total_jobs} total)"
+  fi
 
   if [[ ${#failed[@]} -gt 0 ]]; then
     exit 1
