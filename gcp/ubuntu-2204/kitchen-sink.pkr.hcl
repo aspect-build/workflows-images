@@ -87,7 +87,6 @@ locals {
     "moreutils",
     "xauth",
     "xvfb",
-    "yq",
   ]
 
   # We'll need to tell systemctl to start these when the image boots next.
@@ -146,6 +145,11 @@ build {
 
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
+
+      # Install yq (not packaged in Ubuntu 22.04)
+      "sudo curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${var.arch} -o /usr/bin/yq",
+      "sudo chmod +x /usr/bin/yq",
+      "yq --version",
 
       # Disable unattended-upgrades by removing the package
       "sudo apt purge -y unattended-upgrades",
