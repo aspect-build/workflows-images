@@ -12,10 +12,9 @@ architectures=(
   arm64
 )
 
-# Distros that do not support arm64
-no_arm64_distros=(
-  debian-11
-)
+# Distros that do not support arm64. Currently empty; every supported distro
+# publishes both amd64 and arm64 base images.
+no_arm64_distros=()
 
 all_images=(
     # AWS amazon linux 2
@@ -28,11 +27,6 @@ all_images=(
     aws/al2023/gcc.pkr.hcl
     aws/al2023/kitchen-sink.pkr.hcl
     aws/al2023/minimal.pkr.hcl
-    # AWS debian 11
-    aws/debian-11/docker.pkr.hcl
-    aws/debian-11/gcc.pkr.hcl
-    aws/debian-11/kitchen-sink.pkr.hcl
-    aws/debian-11/minimal.pkr.hcl
     # AWS debian 12
     aws/debian-12/docker.pkr.hcl
     aws/debian-12/gcc.pkr.hcl
@@ -59,11 +53,6 @@ all_images=(
     aws/ubuntu-2604/gcc.pkr.hcl
     aws/ubuntu-2604/kitchen-sink.pkr.hcl
     aws/ubuntu-2604/minimal.pkr.hcl
-    # GCP debian 11
-    gcp/debian-11/docker.pkr.hcl
-    gcp/debian-11/gcc.pkr.hcl
-    gcp/debian-11/kitchen-sink.pkr.hcl
-    gcp/debian-11/minimal.pkr.hcl
     # GCP debian 12
     gcp/debian-12/docker.pkr.hcl
     gcp/debian-12/gcc.pkr.hcl
@@ -105,7 +94,7 @@ continue_or_exit() {
 supports_arch() {
   local distro="$1"
   local arch="$2"
-  if [[ "$arch" == "arm64" ]]; then
+  if [[ "$arch" == "arm64" && ${#no_arm64_distros[@]} -gt 0 ]]; then
     for d in "${no_arm64_distros[@]}"; do
       if [[ "$distro" == "$d" ]]; then
         return 1

@@ -12,9 +12,6 @@ aws_images=(
   # Amazon Linux 2023
   al2023-ami-2023.*-kernel-6.1-x86_64
   al2023-ami-2023.*-kernel-6.1-arm64
-  # Debian 11
-  debian-11-amd64-*
-  debian-11-arm64-*
   # Debian 12
   debian-12-amd64-*
   debian-12-arm64-*
@@ -34,8 +31,6 @@ aws_images=(
 
 # GCP machine images to search for by name & project
 gcp_images=(
-  # Debian 11
-  debian-11-bullseye- debian-cloud
   # Debian 12
   debian-12-bookworm- debian-cloud
   debian-12-bookworm-arm64- debian-cloud

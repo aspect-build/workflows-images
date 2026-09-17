@@ -70,5 +70,5 @@ By default we create amd64 (aka x86_64) images but arm64 images can be created b
 For example,
 
 ```
-packer build -var "version=20241014-0" -var "project=my-project" -var "zone=us-east5-a" gcp/debian-11/minimal.pkr.hcl`
+packer build -var "version=20241014-0" -var "project=my-project" -var "zone=us-east5-a" gcp/debian-12/minimal.pkr.hcl`
 ```
