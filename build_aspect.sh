@@ -54,6 +54,11 @@ all_images=(
     aws/ubuntu-2404/gcc.pkr.hcl
     aws/ubuntu-2404/kitchen-sink.pkr.hcl
     aws/ubuntu-2404/minimal.pkr.hcl
+    # AWS ubuntu 2604
+    aws/ubuntu-2604/docker.pkr.hcl
+    aws/ubuntu-2604/gcc.pkr.hcl
+    aws/ubuntu-2604/kitchen-sink.pkr.hcl
+    aws/ubuntu-2604/minimal.pkr.hcl
     # GCP debian 11
     gcp/debian-11/docker.pkr.hcl
     gcp/debian-11/gcc.pkr.hcl
@@ -64,12 +69,27 @@ all_images=(
     gcp/debian-12/gcc.pkr.hcl
     gcp/debian-12/kitchen-sink.pkr.hcl
     gcp/debian-12/minimal.pkr.hcl
+    # GCP debian 13
+    gcp/debian-13/docker.pkr.hcl
+    gcp/debian-13/gcc.pkr.hcl
+    gcp/debian-13/kitchen-sink.pkr.hcl
+    gcp/debian-13/minimal.pkr.hcl
+    # GCP ubuntu 2204
+    gcp/ubuntu-2204/docker.pkr.hcl
+    gcp/ubuntu-2204/gcc.pkr.hcl
+    gcp/ubuntu-2204/kitchen-sink.pkr.hcl
+    gcp/ubuntu-2204/minimal.pkr.hcl
     # GCP ubuntu 2404
     gcp/ubuntu-2404/custom-0.pkr.hcl
     gcp/ubuntu-2404/docker.pkr.hcl
     gcp/ubuntu-2404/gcc.pkr.hcl
     gcp/ubuntu-2404/kitchen-sink.pkr.hcl
     gcp/ubuntu-2404/minimal.pkr.hcl
+    # GCP ubuntu 2604
+    gcp/ubuntu-2604/docker.pkr.hcl
+    gcp/ubuntu-2604/gcc.pkr.hcl
+    gcp/ubuntu-2604/kitchen-sink.pkr.hcl
+    gcp/ubuntu-2604/minimal.pkr.hcl
 )
 
 continue_or_exit() {

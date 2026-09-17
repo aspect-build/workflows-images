@@ -27,6 +27,9 @@ aws_images=(
   # Ubuntu 24.04
   ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-*
   ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-*
+  # Ubuntu 26.04
+  ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-*
+  ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-arm64-*
 )
 
 # GCP machine images to search for by name & project
@@ -36,9 +39,18 @@ gcp_images=(
   # Debian 12
   debian-12-bookworm- debian-cloud
   debian-12-bookworm-arm64- debian-cloud
+  # Debian 13
+  debian-13-trixie- debian-cloud
+  debian-13-trixie-arm64- debian-cloud
+  # Ubuntu 22.04
+  ubuntu-2204-jammy- ubuntu-os-cloud
+  ubuntu-2204-jammy-arm64- ubuntu-os-cloud
   # Ubuntu 24.04
   ubuntu-2404-noble-amd64- ubuntu-os-cloud
   ubuntu-2404-noble-arm64- ubuntu-os-cloud
+  # Ubuntu 26.04
+  ubuntu-2604-resolute-amd64- ubuntu-os-cloud
+  ubuntu-2604-resolute-arm64- ubuntu-os-cloud
 )
 
 # Lookup for latest AWS AMIs
