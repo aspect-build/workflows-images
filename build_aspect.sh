@@ -139,7 +139,7 @@ fmt_elapsed() {
 # names and elapsed time so the user can see exactly what is stuck.
 status_detail_threshold=5
 status_refresh() {
-  [[ -t 1 ]] || return
+  [[ -t 1 ]] || return 0
   local remaining=${#pids[@]}
   if (( remaining > 0 && remaining <= status_detail_threshold )); then
     local details=""
