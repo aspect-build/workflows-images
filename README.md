@@ -1,33 +1,28 @@
 # Aspect Workflows Starter Images
 
-Collection of packer scripts to create machine images for use with Aspect Workflows used to build Aspect Workflows starter images for AWS and GCP.
+Packer scripts that build the machine images Aspect publishes for Aspect Workflows CI
+runners on AWS and GCP.
 
 > [!TIP]
 > These open source packer scripts may also be used as references for building custom machine images for Aspect Workflows.
 
+**Looking for a published image to use?**
+[Starter machine images](https://aspect.build/docs/aspect-workflows/shapes/self-hosted/infrastructure/starter-images)
+in the Aspect docs is the reference: the current version, what each variant contains, the
+naming scheme, and how to find an image in your region or project. This README covers
+building the images, not consuming them.
+
 ## Variants
 
-### minimal
+`minimal`, `gcc`, `docker` and `kitchen-sink` — see
+[the docs](https://aspect.build/docs/aspect-workflows/shapes/self-hosted/infrastructure/starter-images#variants)
+for what each one installs.
 
-These include the minimal dependencies required by Workflows. Not all dependencies are listed in all Packer files, as some distributions base images have these dependencies already installed.
-
-### gcc
-
-This adds gcc on top of the minimal Workflows dependencies.
-
-### docker
-
-This adds docker on top of the minimal Workflows dependencies.
-
-### kitchen-sink
-
-This adds docker, gcc and other deps such as `make` on top of the minimal Workflows dependencies.
-
-## AWS AMIs
+## Build an AWS AMI
 
 AWS AMI packer files are found under the `/aws` directory.
 
-To build AMS AMI's, first run `packer init`. This is only required once.
+To build AWS AMIs, first run `packer init`. This is only required once.
 
 ```
 packer init aws/<distro>/<variant>.pkr.hcl"
@@ -51,7 +46,7 @@ For example,
 packer build -var "version=20241014-0" -var "region=us-west-2" aws/al2/minimal.pkr.hcl
 ```
 
-## GCP images
+## Build a GCP image
 
 To build GCP images, first run `packer init`. This is only required once.
 
