@@ -168,6 +168,9 @@ build {
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
+      # Base images can predate the distro's ca-certificates fix for the eMudhra intermediate CA compromise.
+      "sudo apt-get install --assume-yes --only-upgrade ca-certificates",
+
       # Symlink legacy library names that don't exist in Debian 12 but are required by some toolchains.
       # libssl1.1 was replaced by libssl3; libtinfo5 was replaced by libtinfo6.
       "MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && sudo ln -sf /usr/lib/$MULTIARCH/libssl.so.3 /usr/lib/$MULTIARCH/libssl.so.1.1",

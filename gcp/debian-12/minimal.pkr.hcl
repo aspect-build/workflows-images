@@ -83,6 +83,9 @@ build {
       "sudo apt-get update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
+      # Base images can predate the distro's ca-certificates fix for the eMudhra intermediate CA compromise.
+      "sudo apt-get install --assume-yes --only-upgrade ca-certificates",
+
       # Install Google Cloud Ops Agent
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
