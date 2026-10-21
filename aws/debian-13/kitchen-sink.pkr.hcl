@@ -171,6 +171,9 @@ build {
       "sudo apt update",
       format("sudo apt-get install --assume-yes %s", join(" ", local.install_packages)),
 
+      # Base images can predate the distro's ca-certificates fix for the eMudhra intermediate CA compromise.
+      "sudo apt-get install --assume-yes --only-upgrade ca-certificates",
+
       # Enable required services
       format("sudo systemctl enable %s", join(" ", local.enable_services)),
 
