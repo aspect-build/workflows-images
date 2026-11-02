@@ -192,12 +192,14 @@ wait_for_slot() {
 
 function main() {
   dry_run=false
+  private=false
   version=""
   max_jobs=100
   new_args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --dry-run)          dry_run=true ;;
+      --private)          private=true ;;
       --version=*)        version="${1#--version=}" ;;
       --version)          shift; version="$1" ;;
       --build-number=*)   build_number="${1#--build-number=}" ;;
@@ -253,6 +255,9 @@ function main() {
 
   local total_jobs=${#job_images[@]}
 
+  if [[ "$private" == "true" ]]; then
+    echo -e "\nPRIVATE: images will be shared only with PRIVATE_AWS_ACCOUNTS / PRIVATE_GCP_MEMBERS; re-run without --private to publish."
+  fi
   if [[ "$dry_run" == "true" ]]; then
     echo -e "\nThe following ${total_jobs} image builds will run at version ${version} (DRY RUN), max ${max_jobs} parallel:"
   else
@@ -316,6 +321,9 @@ function main() {
     )
     if [[ "$dry_run" == "true" ]]; then
       worker_args+=(--dry-run)
+    fi
+    if [[ "$private" == "true" ]]; then
+      worker_args+=(--private)
     fi
 
     "${SCRIPT_DIR}/build_aspect_image.sh" "${worker_args[@]}" > "${logfile}" 2>&1 &

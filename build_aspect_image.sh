@@ -17,12 +17,21 @@ gcp_project=aspect-workflows-images
 
 gcp_zone="us-central1-a"
 
+# With --private, images are shared only with the principals listed in these
+# comma-separated env vars instead of made public. Re-run without --private to
+# publish. Keep the values out of this repo.
+#   PRIVATE_AWS_ACCOUNTS  AWS account IDs granted launch permission
+#   PRIVATE_GCP_MEMBERS   IAM members granted roles/compute.imageUser
+IFS=',' read -ra private_aws_accounts <<< "${PRIVATE_AWS_ACCOUNTS:-}"
+IFS=',' read -ra private_gcp_members <<< "${PRIVATE_GCP_MEMBERS:-}"
+
 function build_aws() {
   local distro="$1"
   local variant="$2"
   local arch="$3"
   local dry_run="$4"
   local version="$5"
+  local private="$6"
 
   local packer_file="aws/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
@@ -110,9 +119,16 @@ function build_aws() {
       state="${states[0]}"
       ami="${amis[0]}"
       if [ "${state}" == "available" ]; then
-        # set image to public once it is available; this can be safely called multiple times
-        aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
-        echo "${name} in ${region} is available and public"
+        # share the image once it is available; this can be safely called multiple times
+        if [[ "$private" == "true" ]]; then
+          for account in "${private_aws_accounts[@]}"; do
+            aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${region}" --image-id "${ami}" --launch-permission "Add=[{UserId=${account}}]"
+          done
+          echo "${name} in ${region} is available and shared with ${private_aws_accounts[*]}"
+        else
+          aws ec2 modify-image-attribute --profile "${aws_profile}" --region "${region}" --image-id "${ami}" --launch-permission "Add=[{Group=all}]"
+          echo "${name} in ${region} is available and public"
+        fi
         ((++available))
       else
         echo "${name} in ${region} is ${state}"
@@ -131,6 +147,7 @@ function build_gcp() {
   local arch="$3"
   local dry_run="$4"
   local version="$5"
+  local private="$6"
 
   local packer_file="gcp/${distro}/${variant}.pkr.hcl"
   local family="aspect-workflows-${distro}-${variant}"
@@ -160,8 +177,16 @@ function build_gcp() {
     fi
   fi
 
-  # ensure image is public
   gcloud config set project "${gcp_project}" 2>/dev/null
+  if [[ "$private" == "true" ]]; then
+    for member in "${private_gcp_members[@]}"; do
+      gcloud compute images add-iam-policy-binding "${name}" --member="${member}" --role='roles/compute.imageUser' >/dev/null
+    done
+    echo "${name} in ${gcp_project} is shared with ${private_gcp_members[*]}"
+    return
+  fi
+
+  # ensure image is public
   existing_policy=$(gcloud compute images get-iam-policy "${name}" --format=json 2>/dev/null || echo '{}')
   if echo "${existing_policy}" | jq -e '.bindings[]? | select(.role == "roles/compute.imageUser") | .members[]? | select(. == "allAuthenticatedUsers")' &>/dev/null; then
     echo "${name} in ${gcp_project} is public"
@@ -176,6 +201,7 @@ function main() {
   local arch=""
   local version=""
   local dry_run=false
+  local private=false
 
   for arg in "$@"; do
     case "$arg" in
@@ -183,12 +209,20 @@ function main() {
       --arch=*) arch="${arg#--arch=}" ;;
       --version=*) version="${arg#--version=}" ;;
       --dry-run) dry_run=true ;;
+      --private) private=true ;;
       *) echo "ERROR: unknown argument '${arg}'"; exit 1 ;;
     esac
   done
 
+  if [[ "$private" == "true" && "$dry_run" != "true" ]]; then
+    if [[ ${#private_aws_accounts[@]} -eq 0 && ${#private_gcp_members[@]} -eq 0 ]]; then
+      echo "ERROR: --private requires PRIVATE_AWS_ACCOUNTS and/or PRIVATE_GCP_MEMBERS"
+      exit 1
+    fi
+  fi
+
   if [[ -z "$image" || -z "$arch" || -z "$version" ]]; then
-    echo "Usage: $0 --image=<path> --arch=<amd64|arm64> --version=<version> [--dry-run]"
+    echo "Usage: $0 --image=<path> --arch=<amd64|arm64> --version=<version> [--dry-run] [--private]"
     exit 1
   fi
 
@@ -199,9 +233,9 @@ function main() {
   local variant="${file%.pkr.hcl}"
 
   if [ "${cloud}" == "aws" ]; then
-    build_aws "${distro}" "${variant}" "${arch}" "${dry_run}" "${version}"
+    build_aws "${distro}" "${variant}" "${arch}" "${dry_run}" "${version}" "${private}"
   elif [ "${cloud}" == "gcp" ]; then
-    build_gcp "${distro}" "${variant}" "${arch}" "${dry_run}" "${version}"
+    build_gcp "${distro}" "${variant}" "${arch}" "${dry_run}" "${version}" "${private}"
   else
     echo "ERROR: unrecognized cloud '${cloud}'"
     exit 1
