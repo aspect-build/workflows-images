@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20260908"
+  source_image = "debian-12-bookworm-${var.arch == "arm64" ? "arm64-" : ""}v20261027"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
