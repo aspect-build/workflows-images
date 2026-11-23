@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "ubuntu-2604-resolute-${var.arch}-v20260911"
+  source_image = "ubuntu-2604-resolute-${var.arch}-v20261119"
 
   # System dependencies required for Aspect Workflows
   install_packages = [

@@ -56,7 +56,7 @@ variable "dry_run" {
 data "amazon-ami" "ubuntu" {
   filters = {
     virtualization-type = "hvm"
-    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-${var.arch}-server-20260904"
+    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-${var.arch}-server-20261120"
     root-device-type    = "ebs"
   }
   owners      = ["099720109477"] # amazon
@@ -122,7 +122,7 @@ locals {
 
   instance_types = {
     amd64 = "t3a.small"
-    arm64 = "c7g.medium"
+    arm64 = "c7g.large" # the 26.04 arm64 base image from 20261104 onward finds no NIC on c7g.medium
   }
 
   awscli_url = {
