@@ -87,7 +87,7 @@ locals {
 
   instance_types = {
     amd64 = "t3a.small"
-    arm64 = "c7g.medium"
+    arm64 = "c7g.large" # the 26.04 arm64 base image from 20261104 onward finds no NIC on c7g.medium
   }
 
   awscli_url = {
