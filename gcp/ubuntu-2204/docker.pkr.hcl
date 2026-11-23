@@ -41,7 +41,7 @@ variable "dry_run" {
 }
 
 locals {
-  source_image = "ubuntu-2204-jammy-${var.arch == "arm64" ? "arm64-" : ""}v20260906"
+  source_image = "ubuntu-2204-jammy-${var.arch == "arm64" ? "arm64-" : ""}v20261118"
 
   # System dependencies required for Aspect Workflows
   install_packages = [
